@@ -5,8 +5,8 @@ from datetime import datetime
 
 
 class SlotGetter:
-    def __init__(self, token, fulfilment_type, postcode):
-        self.token = token
+    def __init__(self, session, fulfilment_type, postcode):
+        self.session = session
         self.fulfilment_type = fulfilment_type
         self.postcode = postcode
 
@@ -15,10 +15,10 @@ class SlotGetter:
         return r.content
 
     def get_last_address_id(self):
-        r = requests.get('https://www.waitrose.com/api/address-prod/v1/addresses?sortBy=-lastDelivery', headers={'authorization': f"Bearer {self.token}"}).json()
+        r = requests.get('https://www.waitrose.com/api/address-prod/v1/addresses?sortBy=-lastDelivery', headers={'authorization': f"Bearer {self.session.token}"}).json()
         return r[0]['id']
 
-    def get_slots(self, branch_id, customer_order_id):
+    def get_slots(self, branch_id):
         client = GraphqlClient(endpoint="https://www.waitrose.com/api/graphql-prod/graph/live")
 
         # Create the query string and variables required for the request.
@@ -54,19 +54,28 @@ class SlotGetter:
         variables = {"slotDaysInput": {
             "branchId": branch_id,
             "slotType": self.fulfilment_type,
-            "customerOrderId": customer_order_id,
+            "customerOrderId": self.session.customerOrderId,
             "addressId": self.get_last_address_id(),
             "fromDate": datetime.today().strftime('%Y-%m-%d'),
             "size": 5
         }}
 
-        return client.execute(query=query, variables=variables, headers={'authorization': f"Bearer {self.token}"})
+        return client.execute(query=query, variables=variables, headers={'authorization': f"Bearer {self.session.token}"})
 
-    def get_available_slots(self, branch_id, customer_order_id):
+    def get_available_slots(self, branch_id=753):
         res = set()
-        slot_days = self.get_slots(branch_id=branch_id, customer_order_id=customer_order_id)
+        slot_days = self.get_slots(branch_id=branch_id)
         for sd in slot_days['data']['slotDays']['content']:
             for s in sd['slots']:
-                if s['slotStatus'] not in ('FULLY_BOOKED', 'UNAVAILABLE'):
+                if s['slotStatus'] not in ('FULLY_BOOKED','UNAVAILABLE'):
                     res.add(s['slotId'])
+        return res
+
+    def get_available_slots_full(self, branch_id=753):
+        res = []
+        slot_days = self.get_slots(branch_id=branch_id)
+        for sd in slot_days['data']['slotDays']['content']:
+            for s in sd['slots']:
+                if s['slotStatus'] not in ('FULLY_BOOKED','UNAVAILABLE'):
+                    res.append(s)
         return res
