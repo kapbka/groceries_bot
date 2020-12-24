@@ -19,8 +19,8 @@ class Session:
             variables={"session": {"username": login, "password": password, "customerId": "-1", "clientId": "WEB_APP"}}
         )
         self.token = data['data']['generateSession']['accessToken']
-        self.customerId = data['data']['generateSession']['customerId']
-        self.customerOrderId = data['data']['generateSession']['customerOrderId']
+        self.customerId = int(data['data']['generateSession']['customerId'])
+        self.customerOrderId = int(data['data']['generateSession']['customerOrderId'])
 
 
 class Slot:
@@ -41,14 +41,14 @@ class Slot:
             'https://www.waitrose.com/api/address-prod/v1/addresses?sortBy=-lastDelivery',
             headers={'authorization': f"Bearer {self.session.token}"}
         ).json()
-        return r[0]['id']
+        return int(r[0]['id'])
 
     def get_slots(self, branch_id: int, date_from: datetime):
         variables = {"slotDaysInput": {
             "branchId": str(branch_id),
             "slotType": self.fulfilment_type,
-            "customerOrderId": self.session.customerOrderId,
-            "addressId": self.get_last_address_id(),
+            "customerOrderId": str(self.session.customerOrderId),
+            "addressId": str(self.get_last_address_id()),
             "fromDate": date_from.strftime('%Y-%m-%d'),
             "size": 5
         }}
@@ -79,8 +79,8 @@ class Slot:
         variables = {"bookSlotInput": {
             "branchId": str(branch_id),
             "slotType": slot_type,
-            "customerOrderId": self.session.customerOrderId,
-            "customerId": self.session.customerId,
+            "customerOrderId": str(self.session.customerOrderId),
+            "customerId": str(self.session.customerId),
             "postcode": postcode,
             "addressId": str(address_id),
             "startDateTime": start_date_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -99,8 +99,8 @@ class Slot:
 
     def confirm_slot(self):
         variables = {"currentSlotInput": {
-            "customerOrderId": self.session.customerOrderId,
-            "customerId": self.session.customerId}
+            "customerOrderId": str(self.session.customerOrderId),
+            "customerId": str(self.session.customerId)}
         }
 
         try:

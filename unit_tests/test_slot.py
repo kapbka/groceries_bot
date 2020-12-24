@@ -9,10 +9,10 @@ from app import utils
 from app import constants
 from datetime import datetime
 
-LAST_ADDRESS_ID_GV = '40407464'
+LAST_ADDRESS_ID_GV = 40407464
 LAST_ADDRESS_GV = [{'id': LAST_ADDRESS_ID_GV}]
-CUSTOMER_ORDER_ID_GV = '109235634'
-CUSTOMER_ID_GV = '558661841'
+CUSTOMER_ORDER_ID_GV = 109235634
+CUSTOMER_ID_GV = 558661841
 
 SLOTS_JSON = {
     'data': {
@@ -150,8 +150,8 @@ def test_get_slots(slot_values, slot):
     variables = {"slotDaysInput": {
         "branchId": "753",
         "slotType": 'DELIVERY',
-        "customerOrderId": slot.session.customerOrderId,
-        "addressId": LAST_ADDRESS_ID_GV,
+        "customerOrderId": str(CUSTOMER_ORDER_ID_GV),
+        "addressId": str(LAST_ADDRESS_ID_GV),
         "fromDate": datetime.today().strftime('%Y-%m-%d'),
         "size": 5
     }}
@@ -172,10 +172,10 @@ def test_book_slot_ok(slot_values, slot):
     variables = {"bookSlotInput": {
         "branchId": "753",
         "slotType": "DELIVERY",
-        "customerOrderId": CUSTOMER_ORDER_ID_GV,
-        "customerId": CUSTOMER_ID_GV,
+        "customerOrderId": str(CUSTOMER_ORDER_ID_GV),
+        "customerId": str(CUSTOMER_ID_GV),
         "postcode": "E14 3TJ",
-        "addressId": LAST_ADDRESS_ID_GV,
+        "addressId": str(LAST_ADDRESS_ID_GV),
         "startDateTime": "2020-12-19T07:00:00Z",
         "endDateTime": "2020-12-19T08:00:00Z"}
     }
@@ -196,10 +196,10 @@ def test_book_slot_failure(slot_values, slot):
     variables = {"bookSlotInput": {
         "branchId": "753",
         "slotType": "DELIVERY",
-        "customerOrderId": CUSTOMER_ORDER_ID_GV,
-        "customerId": CUSTOMER_ID_GV,
+        "customerOrderId": str(CUSTOMER_ORDER_ID_GV),
+        "customerId": str(CUSTOMER_ID_GV),
         "postcode": "E14 3TJ",
-        "addressId": LAST_ADDRESS_ID_GV,
+        "addressId": str(LAST_ADDRESS_ID_GV),
         "startDateTime": "2020-12-19T07:00:00Z",
         "endDateTime": "2020-12-19T08:00:00Z"}
     }
@@ -216,8 +216,8 @@ def test_confirm_slot_ok(slot_values, slot):
 
     # check a call is done with the right variables
     variables = {"currentSlotInput": {
-        "customerOrderId": CUSTOMER_ORDER_ID_GV,
-        "customerId": CUSTOMER_ID_GV}
+        "customerOrderId": str(CUSTOMER_ORDER_ID_GV),
+        "customerId": str(CUSTOMER_ID_GV)}
     }
 
     slot.session.client.execute.assert_called_with(query=constants.CONFIRM_SLOT_QUERY,
@@ -232,8 +232,8 @@ def test_confirm_slot_fail(slot_values, slot):
 
     # check a call is done with the right variables
     variables = {"currentSlotInput": {
-        "customerOrderId": CUSTOMER_ORDER_ID_GV,
-        "customerId": CUSTOMER_ID_GV}
+        "customerOrderId": str(CUSTOMER_ORDER_ID_GV),
+        "customerId": str(CUSTOMER_ID_GV)}
     }
 
     slot.session.client.execute.assert_called_with(query=constants.CONFIRM_SLOT_QUERY,
