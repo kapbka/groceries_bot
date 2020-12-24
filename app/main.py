@@ -1,8 +1,7 @@
-from session import Session
-from slot_getter import SlotGetter
+from app.utils import Session, Slot
 import time
 import json
-
+from app import constants
 
 if __name__ == '__main__':
     import argparse
@@ -21,10 +20,10 @@ if __name__ == '__main__':
     while True:
         cnt += 1
 
-        my_session = Session(args.login, args.password)
+        session = Session(args.login, args.password, constants.SESSION_QUERY, constants.SESSION_ENDPOINT_URL)
 
-        my_slot_getter = SlotGetter(session=my_session, fulfilment_type=args.fulfilment_type, postcode=args.postcode)
-        available_slots = my_slot_getter.get_available_slots_full()
+        slot = Slot(session=session, fulfilment_type=args.fulfilment_type, postcode=args.postcode)
+        available_slots = slot.get_available_slots()
 
         print(f'------ Attempt number {cnt} --------------')
 
