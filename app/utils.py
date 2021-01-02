@@ -22,42 +22,43 @@ class Session:
         self.customerId = int(data['data']['generateSession']['customerId'])
         self.customerOrderId = int(data['data']['generateSession']['customerOrderId'])
 
+    def execute(self, query: str, variables: str):
+        try:
+            return self.client.execute(
+                query=query,
+                variables=variables,
+                headers={'authorization': f"Bearer {self.token}"}
+            )
+        except:
+            logging.exception("Request failed")
+            raise
+
+    def get_last_address_id(self):
+        r = requests.get(
+            'https://www.waitrose.com/api/address-prod/v1/addresses?sortBy=-lastDelivery',
+            headers={'authorization': f"Bearer {self.token}"}
+        ).json()
+        return int(r[0]['id'])
+
 
 class Slot:
     def __init__(self, session: Session, fulfilment_type: str, postcode: str):
         self.session = session
         self.fulfilment_type = fulfilment_type
         self.postcode = postcode
-
-    def get_branches(self):
-        r = requests.get(
-            f'https://www.waitrose.com/api/branch-prod/v3/branches?fulfilment_type=${self.fulfilment_type}&location=${self.postcode}',
-            headers={'authorization': f"Bearer {self.session.token}"}
-        )
-        return r.content
-
-    def get_last_address_id(self):
-        r = requests.get(
-            'https://www.waitrose.com/api/address-prod/v1/addresses?sortBy=-lastDelivery',
-            headers={'authorization': f"Bearer {self.session.token}"}
-        ).json()
-        return int(r[0]['id'])
+        self.last_address_id = self.session.get_last_address_id()
 
     def get_slots(self, branch_id: int, date_from: datetime):
         variables = {"slotDaysInput": {
             "branchId": str(branch_id),
             "slotType": self.fulfilment_type,
             "customerOrderId": str(self.session.customerOrderId),
-            "addressId": str(self.get_last_address_id()),
+            "addressId": str(self.last_address_id),
             "fromDate": date_from.strftime('%Y-%m-%d'),
             "size": 5
         }}
 
-        slots_json = self.session.client.execute(
-            query=constants.SLOT_QUERY,
-            variables=variables,
-            headers={'authorization': f"Bearer {self.session.token}"}
-        )
+        slots_json = self.session.execute(constants.SLOT_QUERY, variables)
 
         return slots_json['data']['slotDays']['content']
 
@@ -87,15 +88,9 @@ class Slot:
             "endDateTime": end_date_time.strftime('%Y-%m-%dT%H:%M:%SZ')}
         }
 
-        try:
-            book_res = self.session.client.execute(query=constants.BOOK_SLOT_QUERY,
-                                                   variables=variables,
-                                                   headers={'authorization': f"Bearer {self.session.token}"})
-            return book_res['data']['bookSlot']['failures'].lower() == 'null'
-        # if any exception then log and return false
-        except:
-            logging.exception("Booking failed")
-            return False
+        book_res = self.session.execute(constants.BOOK_SLOT_QUERY, variables)
+
+        return book_res['data']['bookSlot']['failures'].lower() == 'null'
 
     def confirm_slot(self):
         variables = {"currentSlotInput": {
@@ -103,14 +98,10 @@ class Slot:
             "customerId": str(self.session.customerId)}
         }
 
-        try:
-            confirm_res = self.session.client.execute(query=constants.CONFIRM_SLOT_QUERY, variables=variables,
-                                                      headers={'authorization': f"Bearer {self.session.token}"})
-            return len(confirm_res['data']['currentSlot']) > 0
-        # if any exception then log and return false
-        except:
-            logging.exception("Confirmation failed")
-            return False
+        confirm_res = self.session.execute(constants.CONFIRM_SLOT_QUERY, variables)
+
+        return len(confirm_res['data']['currentSlot']) > 0
+
 
     def get_last_order_id(self):
         pass

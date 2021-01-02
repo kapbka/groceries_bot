@@ -4,12 +4,13 @@ Command line: python -m pytest unit_tests/test_session.py
 """
 import pytest
 import requests
+import mock
 
 from app import utils
 from app import constants
 
 
-LAST_ADDRESS_ID_GV = '40407464'
+LAST_ADDRESS_ID_GV = 40407464
 
 
 @pytest.fixture
@@ -54,3 +55,9 @@ def test_create_invalid_end_point(session_values):
     session_values['end_point'] = 'invalid'
     with pytest.raises(requests.exceptions.MissingSchema):
         utils.Session(**session_values)
+
+
+def test_get_last_address_id(session):
+    session.get_last_address_id = mock.MagicMock(return_value=LAST_ADDRESS_ID_GV)
+    last_address_id = session.get_last_address_id()
+    assert LAST_ADDRESS_ID_GV == last_address_id

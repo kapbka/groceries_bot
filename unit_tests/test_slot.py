@@ -8,6 +8,7 @@ import mock
 from app import utils
 from app import constants
 from datetime import datetime
+import copy
 
 LAST_ADDRESS_ID_GV = 40407464
 LAST_ADDRESS_GV = [{'id': LAST_ADDRESS_ID_GV}]
@@ -109,9 +110,14 @@ CONFIRM_SLOT_JSON_FAIL = {
     }
 }
 
+
 @pytest.fixture
 def session():
-    return mock.MagicMock(token='fake', customerOrderId=CUSTOMER_ORDER_ID_GV, customerId=CUSTOMER_ID_GV)
+    return mock.MagicMock(
+        token='fake',
+        customerOrderId=CUSTOMER_ORDER_ID_GV,
+        customerId=CUSTOMER_ID_GV
+    )
 
 
 @pytest.fixture
@@ -119,13 +125,19 @@ def slot_values(session):
     return {
         'session': session,
         'fulfilment_type': 'DELIVERY',
-        'postcode': 'E14 3TJ'
+        'postcode': 'E14 3TJ',
+        'last_address_id': LAST_ADDRESS_ID_GV
     }
 
 
 @pytest.fixture
+# @mock.patch("requests.get",
+#             mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=LAST_ADDRESS_GV))))
 def slot(slot_values):
-    return utils.Slot(**slot_values)
+    slot_values['session'].get_last_address_id = mock.MagicMock(return_value=LAST_ADDRESS_ID_GV)
+    sv = copy.deepcopy(slot_values)
+    sv.pop('last_address_id')
+    return utils.Slot(**sv)
 
 
 def test_get_slot(slot_values, slot):
@@ -133,16 +145,8 @@ def test_get_slot(slot_values, slot):
         assert getattr(slot, attr_name) == slot_values.get(attr_name)
 
 
-@mock.patch("requests.get",
-            mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=LAST_ADDRESS_GV))))
-def test_get_last_address_id(slot_values, slot):
-    last_address_id = slot.get_last_address_id()
-    assert LAST_ADDRESS_ID_GV == last_address_id
-
-
 def test_get_slots(slot_values, slot):
-    slot.get_last_address_id = mock.MagicMock(return_value=LAST_ADDRESS_ID_GV)
-    slot.session.client = mock.MagicMock(execute=mock.MagicMock(return_value=SLOTS_JSON))
+    slot.session.execute = mock.MagicMock(return_value=SLOTS_JSON)
     slots = slot.get_slots(753, datetime.today())
     assert slots == SLOTS_LIST
 
@@ -156,13 +160,11 @@ def test_get_slots(slot_values, slot):
         "size": 5
     }}
 
-    slot.session.client.execute.assert_called_with(query=constants.SLOT_QUERY,
-                                                   variables=variables,
-                                                   headers={'authorization': f"Bearer {slot.session.token}"})
+    slot.session.execute.assert_called_with(constants.SLOT_QUERY, variables)
 
 
 def test_book_slot_ok(slot_values, slot):
-    slot.session.client = mock.MagicMock(execute=mock.MagicMock(return_value=BOOK_SLOT_JSON_OK))
+    slot.session.execute = mock.MagicMock(return_value=BOOK_SLOT_JSON_OK)
     book_slot = slot.book_slot(branch_id=753, postcode='E14 3TJ', address_id=LAST_ADDRESS_ID_GV, slot_type='DELIVERY',
                                start_date_time=datetime.strptime('2020-12-19 07:00:00', '%Y-%m-%d %H:%M:%S'),
                                end_date_time=datetime.strptime('2020-12-19 08:00:00', '%Y-%m-%d %H:%M:%S'))
@@ -180,13 +182,11 @@ def test_book_slot_ok(slot_values, slot):
         "endDateTime": "2020-12-19T08:00:00Z"}
     }
 
-    slot.session.client.execute.assert_called_with(query=constants.BOOK_SLOT_QUERY,
-                                                   variables=variables,
-                                                   headers={'authorization': f"Bearer {slot.session.token}"})
+    slot.session.execute.assert_called_with(constants.BOOK_SLOT_QUERY, variables)
 
 
 def test_book_slot_failure(slot_values, slot):
-    slot.session.client = mock.MagicMock(execute=mock.MagicMock(return_value=BOOK_SLOT_JSON_FAIL))
+    slot.session.execute = mock.MagicMock(return_value=BOOK_SLOT_JSON_FAIL)
     book_slot = slot.book_slot(branch_id=753, postcode='E14 3TJ', address_id=LAST_ADDRESS_ID_GV, slot_type='DELIVERY',
                                start_date_time=datetime.strptime('2020-12-19 07:00:00', '%Y-%m-%d %H:%M:%S'),
                                end_date_time=datetime.strptime('2020-12-19 08:00:00', '%Y-%m-%d %H:%M:%S'))
@@ -204,13 +204,11 @@ def test_book_slot_failure(slot_values, slot):
         "endDateTime": "2020-12-19T08:00:00Z"}
     }
 
-    slot.session.client.execute.assert_called_with(query=constants.BOOK_SLOT_QUERY,
-                                                   variables=variables,
-                                                   headers={'authorization': f"Bearer {slot.session.token}"})
+    slot.session.execute.assert_called_with(constants.BOOK_SLOT_QUERY, variables)
 
 
 def test_confirm_slot_ok(slot_values, slot):
-    slot.session.client = mock.MagicMock(execute=mock.MagicMock(return_value=CONFIRM_SLOT_JSON_OK))
+    slot.session.execute = mock.MagicMock(return_value=CONFIRM_SLOT_JSON_OK)
     confirm_slot = slot.confirm_slot()
     assert confirm_slot
 
@@ -220,13 +218,11 @@ def test_confirm_slot_ok(slot_values, slot):
         "customerId": str(CUSTOMER_ID_GV)}
     }
 
-    slot.session.client.execute.assert_called_with(query=constants.CONFIRM_SLOT_QUERY,
-                                                   variables=variables,
-                                                   headers={'authorization': f"Bearer {slot.session.token}"})
+    slot.session.execute.assert_called_with(constants.CONFIRM_SLOT_QUERY, variables)
 
 
 def test_confirm_slot_fail(slot_values, slot):
-    slot.session.client = mock.MagicMock(execute=mock.MagicMock(return_value=CONFIRM_SLOT_JSON_FAIL))
+    slot.session.execute = mock.MagicMock(return_value=CONFIRM_SLOT_JSON_FAIL)
     confirm_slot = slot.confirm_slot()
     assert not confirm_slot
 
@@ -236,6 +232,4 @@ def test_confirm_slot_fail(slot_values, slot):
         "customerId": str(CUSTOMER_ID_GV)}
     }
 
-    slot.session.client.execute.assert_called_with(query=constants.CONFIRM_SLOT_QUERY,
-                                                   variables=variables,
-                                                   headers={'authorization': f"Bearer {slot.session.token}"})
+    slot.session.execute.assert_called_with(constants.CONFIRM_SLOT_QUERY, variables)
