@@ -7,29 +7,30 @@ import typing
 
 
 class Session:
-    def __init__(self, login: str, password: str, query: str, end_point: str):
+    def __init__(self, login: str, password: str):
         self.login = login
         self.password = password
-        self.client = GraphqlClient(endpoint=end_point)
-        self.query = query
-        self.end_point = end_point
+        self.client = GraphqlClient(endpoint=constants.SESSION_ENDPOINT_URL)
 
-        data = self.client.execute(
-            query=query,
-            variables={"session": {"username": login, "password": password, "customerId": "-1", "clientId": "WEB_APP"}}
-        )
+        self.token = None
+        data = self.execute(
+            constants.SESSION_QUERY,
+            {"session": {"username": login, "password": password, "customerId": "-1", "clientId": "WEB_APP"}})
         self.token = data['data']['generateSession']['accessToken']
         self.customerId = int(data['data']['generateSession']['customerId'])
         self.customerOrderId = int(data['data']['generateSession']['customerOrderId'])
 
-    def execute(self, query: str, variables: str):
+    def execute(self, query: str, variables: dict):
         res = None
+        headers = {'authorization': f"Bearer {self.token}"} if self.token else {}
+
         try:
             res = self.client.execute(
                 query=query,
                 variables=variables,
-                headers={'authorization': f"Bearer {self.token}"}
+                headers=headers
             )
+            return res
         except:
             logging.exception(f'Request failed {res}')
             raise
@@ -61,7 +62,7 @@ class Slot:
 
         slots_json = self.session.execute(constants.SLOT_QUERY, variables)
 
-        return slots_json['data']['slotDays']['content']
+        return slots_json['data']['slotDays']['content'] if slots_json is not None else None
 
     def get_available_slots(self, branch_id: int = 753, page_cnt: int = 4):
         res = {}
@@ -70,11 +71,12 @@ class Slot:
             # get all slots for the necessary interval of time
             slot_days = self.get_slots(branch_id=branch_id, date_from=datetime.today() + timedelta(si*5))
             # loop through all slot days
-            for sd in slot_days:
-                # go trough all slots for the day and add only available ones to res
-                for s in sd['slots']:
-                    if s['slotStatus'] not in ('FULLY_BOOKED', 'UNAVAILABLE'):
-                        res[s['slotId']] = s
+            if slot_days:
+                for sd in slot_days:
+                    # go trough all slots for the day and add only available ones to res
+                    for s in sd['slots']:
+                        if s['slotStatus'] not in ('FULLY_BOOKED', 'UNAVAILABLE'):
+                            res[s['slotId']] = s
         return res
 
     def book_slot(self, branch_id: int, postcode: str, address_id: int, slot_type: str, start_date_time: datetime, end_date_time: datetime):
@@ -91,18 +93,25 @@ class Slot:
 
         book_res = self.session.execute(constants.BOOK_SLOT_QUERY, variables)
 
-        return book_res['data']['bookSlot']['failures'].lower() == 'null'
+        failures = book_res['data']['bookSlot']['failures']
+        if not failures or isinstance(failures, str) and failures.lower() == 'null':
+            return True
+        else:
+            raise ValueError(f'Booking failed, see the details: {failures}')
 
-    def confirm_slot(self):
+    def get_current_slot(self):
         variables = {"currentSlotInput": {
             "customerOrderId": str(self.session.customerOrderId),
             "customerId": str(self.session.customerId)}
         }
 
-        confirm_res = self.session.execute(constants.CONFIRM_SLOT_QUERY, variables)
+        current_slot = self.session.execute(constants.CURRENT_SLOT_QUERY, variables)
 
-        return len(confirm_res['data']['currentSlot']) > 0
-
+        try:
+            return current_slot['data']['currentSlot']['startDateTime'], \
+                   current_slot['data']['currentSlot']['endDateTime']
+        except:
+            return None, None
 
     def get_last_order_id(self):
         pass

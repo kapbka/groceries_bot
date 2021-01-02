@@ -17,9 +17,7 @@ LAST_ADDRESS_ID_GV = 40407464
 def session_values():
     return {
         'login': 'clrn@mail.ru',
-        'password': '3zbiWViHJuE&{Ns',
-        'query': constants.SESSION_QUERY,
-        'end_point': constants.SESSION_ENDPOINT_URL
+        'password': '3zbiWViHJuE&{Ns'
     }
 
 
@@ -42,18 +40,6 @@ def test_create_invalid_login(session_values):
 def test_create_invalid_password(session_values):
     session_values['password'] = 'test'
     with pytest.raises(requests.exceptions.HTTPError):
-        utils.Session(**session_values)
-
-
-def test_create_invalid_query(session_values):
-    session_values['query'] = 'query'
-    with pytest.raises(requests.exceptions.HTTPError):
-        utils.Session(**session_values)
-
-
-def test_create_invalid_end_point(session_values):
-    session_values['end_point'] = 'invalid'
-    with pytest.raises(requests.exceptions.MissingSchema):
         utils.Session(**session_values)
 
 

@@ -86,7 +86,7 @@ BOOK_SLOT_JSON_FAIL = {
     }
 }
 
-CONFIRM_SLOT_JSON_OK = {
+CURRENT_SLOT_JSON_OK = {
     "data": {
         "currentSlot": {
             "slotType": "DELIVERY",
@@ -103,12 +103,16 @@ CONFIRM_SLOT_JSON_OK = {
     }
 }
 
-CONFIRM_SLOT_JSON_FAIL = {
+CURRENT_SLOT_OK = ('2020-12-19T07:00:00+01:00', '2020-12-19T08:00:00+01:00')
+
+CURRENT_SLOT_JSON_FAIL = {
     "data": {
         "currentSlot": {
         }
     }
 }
+
+CURRENT_SLOT_FAIL = None, None
 
 
 @pytest.fixture
@@ -131,8 +135,6 @@ def slot_values(session):
 
 
 @pytest.fixture
-# @mock.patch("requests.get",
-#             mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=LAST_ADDRESS_GV))))
 def slot(slot_values):
     slot_values['session'].get_last_address_id = mock.MagicMock(return_value=LAST_ADDRESS_ID_GV)
     sv = copy.deepcopy(slot_values)
@@ -187,10 +189,10 @@ def test_book_slot_ok(slot_values, slot):
 
 def test_book_slot_failure(slot_values, slot):
     slot.session.execute = mock.MagicMock(return_value=BOOK_SLOT_JSON_FAIL)
-    book_slot = slot.book_slot(branch_id=753, postcode='E14 3TJ', address_id=LAST_ADDRESS_ID_GV, slot_type='DELIVERY',
-                               start_date_time=datetime.strptime('2020-12-19 07:00:00', '%Y-%m-%d %H:%M:%S'),
-                               end_date_time=datetime.strptime('2020-12-19 08:00:00', '%Y-%m-%d %H:%M:%S'))
-    assert not book_slot
+    with pytest.raises(ValueError):
+        book_slot = slot.book_slot(branch_id=753, postcode='E14 3TJ', address_id=LAST_ADDRESS_ID_GV, slot_type='DELIVERY',
+                                   start_date_time=datetime.strptime('2020-12-19 07:00:00', '%Y-%m-%d %H:%M:%S'),
+                                   end_date_time=datetime.strptime('2020-12-19 08:00:00', '%Y-%m-%d %H:%M:%S'))
 
     # check a call is done with the right variables
     variables = {"bookSlotInput": {
@@ -207,10 +209,10 @@ def test_book_slot_failure(slot_values, slot):
     slot.session.execute.assert_called_with(constants.BOOK_SLOT_QUERY, variables)
 
 
-def test_confirm_slot_ok(slot_values, slot):
-    slot.session.execute = mock.MagicMock(return_value=CONFIRM_SLOT_JSON_OK)
-    confirm_slot = slot.confirm_slot()
-    assert confirm_slot
+def test_get_current_slot_ok(slot_values, slot):
+    slot.session.execute = mock.MagicMock(return_value=CURRENT_SLOT_JSON_OK)
+    current_slot = slot.get_current_slot()
+    assert current_slot == CURRENT_SLOT_OK
 
     # check a call is done with the right variables
     variables = {"currentSlotInput": {
@@ -218,13 +220,13 @@ def test_confirm_slot_ok(slot_values, slot):
         "customerId": str(CUSTOMER_ID_GV)}
     }
 
-    slot.session.execute.assert_called_with(constants.CONFIRM_SLOT_QUERY, variables)
+    slot.session.execute.assert_called_with(constants.CURRENT_SLOT_QUERY, variables)
 
 
-def test_confirm_slot_fail(slot_values, slot):
-    slot.session.execute = mock.MagicMock(return_value=CONFIRM_SLOT_JSON_FAIL)
-    confirm_slot = slot.confirm_slot()
-    assert not confirm_slot
+def test_get_current_slot_fail(slot_values, slot):
+    slot.session.execute = mock.MagicMock(return_value=CURRENT_SLOT_JSON_FAIL)
+    current_slot = slot.get_current_slot()
+    assert current_slot == CURRENT_SLOT_FAIL
 
     # check a call is done with the right variables
     variables = {"currentSlotInput": {
@@ -232,4 +234,4 @@ def test_confirm_slot_fail(slot_values, slot):
         "customerId": str(CUSTOMER_ID_GV)}
     }
 
-    slot.session.execute.assert_called_with(constants.CONFIRM_SLOT_QUERY, variables)
+    slot.session.execute.assert_called_with(constants.CURRENT_SLOT_QUERY, variables)

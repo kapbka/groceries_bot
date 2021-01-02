@@ -66,7 +66,7 @@ BOOK_SLOT_QUERY = """
             }
         """
 
-CONFIRM_SLOT_QUERY = """
+CURRENT_SLOT_QUERY = """
             "query": "query currentSlot($currentSlotInput: CurrentSlotInput) {
                 currentSlot(currentSlotInput: $currentSlotInput) {
                     slotType
