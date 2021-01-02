@@ -23,14 +23,15 @@ class Session:
         self.customerOrderId = int(data['data']['generateSession']['customerOrderId'])
 
     def execute(self, query: str, variables: str):
+        res = None
         try:
-            return self.client.execute(
+            res = self.client.execute(
                 query=query,
                 variables=variables,
                 headers={'authorization': f"Bearer {self.token}"}
             )
         except:
-            logging.exception("Request failed")
+            logging.exception(f'Request failed {res}')
             raise
 
     def get_last_address_id(self):
