@@ -1,7 +1,21 @@
-# constants for the utility
+# constants for the utils
 
 
 SESSION_ENDPOINT_URL = "https://www.waitrose.com/api/graphql-prod/graph/live"
+
+LAST_ADDRESS_ID_URL = 'https://www.waitrose.com/api/address-prod/v1/addresses?sortBy=-lastDelivery'
+
+ORDER_LIST_URL = 'https://www.waitrose.com/api/order-orchestration-prod/v1/orders?size=15&statuses=COMPLETED%2BCANCELLED%2BREFUND_PENDING'
+
+PRODUCT_LIST_URL = 'https://www.waitrose.com/api/products-prod/v1/products/{}?view=SUMMARY'
+
+SHOP_FROM_ORDER_URL = 'https://www.waitrose.com/ecom/myaccount/my-orders/order/shop-from-order/$order_id'
+
+TROLLEY_ITEMS_URL = 'https://www.waitrose.com/api/orderitems-prod/v4/orders/{}/trolley/items?merge=true'
+
+PAYMENTS_CARDS_URL = 'https://www.waitrose.com/api/payment-orchestration-prod/v1/payments/paymentcards/'
+
+CHECKOUT_URL = 'https://www.waitrose.com/api/order-orchestration-prod/v1/orders/{}/payment-cards/{}'
 
 SESSION_QUERY = """
             mutation($session: SessionInput) {      
@@ -67,7 +81,7 @@ BOOK_SLOT_QUERY = """
         """
 
 CURRENT_SLOT_QUERY = """
-            "query": "query currentSlot($currentSlotInput: CurrentSlotInput) {
+            query currentSlot($currentSlotInput: CurrentSlotInput) {
                 currentSlot(currentSlotInput: $currentSlotInput) {
                     slotType
                     branchId
@@ -81,4 +95,4 @@ CURRENT_SLOT_QUERY = """
                     shopByDateTime
                 }
             }
-"""
+        """

@@ -14,14 +14,17 @@ LAST_ADDRESS_ID_GV = 40407464
 LAST_ADDRESS_GV = [{'id': LAST_ADDRESS_ID_GV}]
 CUSTOMER_ORDER_ID_GV = 109235634
 CUSTOMER_ID_GV = 558661841
+BRANCH_ID = 753
+POSTCODE = 'E14 3TJ'
+SLOT_TYPE = 'DELIVERY'
 
 SLOTS_JSON = {
     'data': {
         'slotDays': {
             'content': [{
-                'id': '753_DELIVERY_2020-12-19',
-                'branchId': '753',
-                'slotType': 'DELIVERY',
+                'id': str(BRANCH_ID) + '_' + SLOT_TYPE + '_2020-12-19',
+                'branchId': BRANCH_ID,
+                'slotType': SLOT_TYPE,
                 'date': '2020-12-19',
                 'slots': [{
                     'slotId': '2020-12-19_07:00_08:00',
@@ -43,9 +46,9 @@ SLOTS_JSON = {
 }
 
 SLOTS_LIST = [{
-    'id': '753_DELIVERY_2020-12-19',
-    'branchId': '753',
-    'slotType': 'DELIVERY',
+    'id': str(BRANCH_ID) + '_' + SLOT_TYPE + '_2020-12-19',
+    'branchId': BRANCH_ID,
+    'slotType': SLOT_TYPE,
     'date': '2020-12-19',
     'slots': [{
         'slotId': '2020-12-19_07:00_08:00',
@@ -89,10 +92,10 @@ BOOK_SLOT_JSON_FAIL = {
 CURRENT_SLOT_JSON_OK = {
     "data": {
         "currentSlot": {
-            "slotType": "DELIVERY",
-            "branchId": "753",
+            "slotType": SLOT_TYPE,
+            "branchId": BRANCH_ID,
             "addressId": "40407464",
-            "postcode": "E14 3TJ",
+            "postcode": POSTCODE,
             "startDateTime": "2020-12-19T07:00:00+01:00",
             "endDateTime": "2020-12-19T08:00:00+01:00",
             "expiryDateTime": "2020-06-17T09:43:48+01:00",
@@ -120,7 +123,8 @@ def session():
     return mock.MagicMock(
         token='fake',
         customerOrderId=CUSTOMER_ORDER_ID_GV,
-        customerId=CUSTOMER_ID_GV
+        customerId=CUSTOMER_ID_GV,
+        last_address_id=LAST_ADDRESS_ID_GV
     )
 
 
@@ -128,18 +132,14 @@ def session():
 def slot_values(session):
     return {
         'session': session,
-        'fulfilment_type': 'DELIVERY',
-        'postcode': 'E14 3TJ',
-        'last_address_id': LAST_ADDRESS_ID_GV
+        'fulfilment_type': SLOT_TYPE,
+        'postcode': POSTCODE
     }
 
 
 @pytest.fixture
 def slot(slot_values):
-    slot_values['session'].get_last_address_id = mock.MagicMock(return_value=LAST_ADDRESS_ID_GV)
-    sv = copy.deepcopy(slot_values)
-    sv.pop('last_address_id')
-    return utils.Slot(**sv)
+    return utils.Slot(**slot_values)
 
 
 def test_get_slot(slot_values, slot):
@@ -149,13 +149,13 @@ def test_get_slot(slot_values, slot):
 
 def test_get_slots(slot_values, slot):
     slot.session.execute = mock.MagicMock(return_value=SLOTS_JSON)
-    slots = slot.get_slots(753, datetime.today())
+    slots = slot.get_slots(BRANCH_ID, datetime.today())
     assert slots == SLOTS_LIST
 
     # check a call is done with the right variables
     variables = {"slotDaysInput": {
-        "branchId": "753",
-        "slotType": 'DELIVERY',
+        "branchId": str(BRANCH_ID),
+        "slotType": SLOT_TYPE,
         "customerOrderId": str(CUSTOMER_ORDER_ID_GV),
         "addressId": str(LAST_ADDRESS_ID_GV),
         "fromDate": datetime.today().strftime('%Y-%m-%d'),
@@ -167,18 +167,18 @@ def test_get_slots(slot_values, slot):
 
 def test_book_slot_ok(slot_values, slot):
     slot.session.execute = mock.MagicMock(return_value=BOOK_SLOT_JSON_OK)
-    book_slot = slot.book_slot(branch_id=753, postcode='E14 3TJ', address_id=LAST_ADDRESS_ID_GV, slot_type='DELIVERY',
+    book_slot = slot.book_slot(branch_id=BRANCH_ID, postcode=POSTCODE, address_id=LAST_ADDRESS_ID_GV, slot_type=SLOT_TYPE,
                                start_date_time=datetime.strptime('2020-12-19 07:00:00', '%Y-%m-%d %H:%M:%S'),
                                end_date_time=datetime.strptime('2020-12-19 08:00:00', '%Y-%m-%d %H:%M:%S'))
     assert book_slot
 
     # check a call is done with the right variables
     variables = {"bookSlotInput": {
-        "branchId": "753",
-        "slotType": "DELIVERY",
+        "branchId": str(BRANCH_ID),
+        "slotType": SLOT_TYPE,
         "customerOrderId": str(CUSTOMER_ORDER_ID_GV),
         "customerId": str(CUSTOMER_ID_GV),
-        "postcode": "E14 3TJ",
+        "postcode": POSTCODE,
         "addressId": str(LAST_ADDRESS_ID_GV),
         "startDateTime": "2020-12-19T07:00:00Z",
         "endDateTime": "2020-12-19T08:00:00Z"}
@@ -190,17 +190,17 @@ def test_book_slot_ok(slot_values, slot):
 def test_book_slot_failure(slot_values, slot):
     slot.session.execute = mock.MagicMock(return_value=BOOK_SLOT_JSON_FAIL)
     with pytest.raises(ValueError):
-        book_slot = slot.book_slot(branch_id=753, postcode='E14 3TJ', address_id=LAST_ADDRESS_ID_GV, slot_type='DELIVERY',
+        book_slot = slot.book_slot(branch_id=BRANCH_ID, postcode=POSTCODE, address_id=LAST_ADDRESS_ID_GV, slot_type=SLOT_TYPE,
                                    start_date_time=datetime.strptime('2020-12-19 07:00:00', '%Y-%m-%d %H:%M:%S'),
                                    end_date_time=datetime.strptime('2020-12-19 08:00:00', '%Y-%m-%d %H:%M:%S'))
 
     # check a call is done with the right variables
     variables = {"bookSlotInput": {
-        "branchId": "753",
-        "slotType": "DELIVERY",
+        "branchId": str(BRANCH_ID),
+        "slotType": SLOT_TYPE,
         "customerOrderId": str(CUSTOMER_ORDER_ID_GV),
         "customerId": str(CUSTOMER_ID_GV),
-        "postcode": "E14 3TJ",
+        "postcode": POSTCODE,
         "addressId": str(LAST_ADDRESS_ID_GV),
         "startDateTime": "2020-12-19T07:00:00Z",
         "endDateTime": "2020-12-19T08:00:00Z"}
