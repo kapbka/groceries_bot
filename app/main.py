@@ -1,8 +1,7 @@
-from session import Session
-from slot_getter import SlotGetter
+from app.utils import Session, Slot
 import time
 import json
-
+from datetime import datetime
 
 if __name__ == '__main__':
     import argparse
@@ -21,10 +20,10 @@ if __name__ == '__main__':
     while True:
         cnt += 1
 
-        my_session = Session(args.login, args.password)
+        session = Session(args.login, args.password)
 
-        my_slot_getter = SlotGetter(session=my_session, fulfilment_type=args.fulfilment_type, postcode=args.postcode)
-        available_slots = my_slot_getter.get_available_slots_full()
+        slot = Slot(session=session, fulfilment_type=args.fulfilment_type, postcode=args.postcode)
+        available_slots = slot.get_available_slots()
 
         print(f'------ Attempt number {cnt} --------------')
 
@@ -32,4 +31,12 @@ if __name__ == '__main__':
             time.sleep(args.interval*60)
         else:
             print(json.dumps(available_slots,indent=2))
+            book=slot.book_slot(branch_id=753,
+                                postcode='E14 3TJ',
+                                address_id=40407464,
+                                slot_type='DELIVERY',
+                                start_date_time=datetime.strptime('2021-01-12 13:00:00', '%Y-%m-%d %H:%M:%S'),
+                                end_date_time=datetime.strptime('2021-01-12 14:00:00', '%Y-%m-%d %H:%M:%S'))
+            if not book:
+                print('FAILURE!!!')
             break
