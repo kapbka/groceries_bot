@@ -17,6 +17,8 @@ class Session:
             constants.SESSION_QUERY,
             {"session": {"username": login, "password": password, "customerId": "-1", "clientId": "WEB_APP"}})
         self.token = data['data']['generateSession']['accessToken']
+        self.headers = {'authorization': f"Bearer {self.token}"}
+
         self.customerId = int(data['data']['generateSession']['customerId'])
         self.customerOrderId = int(data['data']['generateSession']['customerOrderId'])
 
@@ -24,51 +26,17 @@ class Session:
         self.last_order = self._get_last_order()
         self.last_order_id = self._get_last_order_id()
 
-    def get(self, url: str):
-        res = None
-        try:
-            res = requests.get(url, headers={'authorization': f"Bearer {self.token}"}).json()
-            return res
-        except:
-            logging.exception(f'Get request failed {res}')
-            raise
-
-    def put(self, url: str, json=None):
-        res = None
-        try:
-            res = requests.put(url, headers={'authorization': f"Bearer {self.token}"}, json=json).json()
-            return res
-        except:
-            logging.exception(f'Put request failed {res}')
-            raise
-
-    def patch(self, url: str, json=None):
-        res = None
-        try:
-            res = requests.patch(url, headers={'authorization': f"Bearer {self.token}"}, json=json).json()
-            return res
-        except:
-            logging.exception(f'Patch request failed {res}')
-            raise
-
     def execute(self, query: str, variables: dict):
-        res = None
-        try:
-            res = self.client.execute(
+        return self.client.execute(
                 query=query,
                 variables=variables,
-                headers={'authorization': f"Bearer {self.token}"} if self.token else {}
-            )
-            return res
-        except:
-            logging.exception(f'Request failed {res}')
-            raise
+                headers=self.headers if self.token else {})
 
     def _get_last_address_id(self):
-        return int(self.get(constants.LAST_ADDRESS_ID_URL)[0]['id'])
+        return int(requests.get(constants.LAST_ADDRESS_ID_URL, headers=self.headers).json()[0]['id'])
 
     def _get_order_list(self):
-        return self.get(constants.ORDER_LIST_URL)['content']
+        return requests.get(constants.ORDER_LIST_URL, headers=self.headers).json()['content']
 
     def _get_last_order(self):
         order_list = self._get_order_list()
@@ -78,18 +46,13 @@ class Session:
         return int(self.last_order['customerOrderId']) if self.last_order else None
 
     def _get_products(self):
-        order_lines = '+'.join([order_item['lineNumber'] for order_item in self.last_order['orderLines'] if self.last_order])
-        return self.get(constants.PRODUCT_LIST_URL.format(order_lines)) if order_lines else {}
+        order_lines = '+'.join([order_item['lineNumber']
+                                for order_item in self.last_order['orderLines'] if self.last_order])
+        return requests.get(constants.PRODUCT_LIST_URL.format(order_lines), headers=self.headers).json() if order_lines else {}
 
-    def convert_order_list_to_dict(self):
-        res = {}
-        for ol in self.last_order['orderLines']:
-            res[ol['lineNumber']] = ol
-        return res
-
-    def merge_last_order_to_basket(self):
+    def merge_last_order_to_basket(self, order_id: int):
         res = []
-        last_order_dict = self.convert_order_list_to_dict()
+        last_order_dict = {ol['lineNumber']: ol for ol in self.last_order['orderLines']}
         for p in self._get_products()['products']:
             pl = dict(canSubstitute='false',
                       lineNumber=str(p['lineNumber']),
@@ -99,7 +62,8 @@ class Session:
                       trolleyItemId=-1)
             res.append(pl)
 
-        items = self.patch(constants.TROLLEY_ITEMS_URL.format(self.customerOrderId), res) if res else None
+        items = requests.patch(constants.TROLLEY_ITEMS_URL.format(self.customerOrderId),
+                               headers=self.headers, json=res).json() if res else None
 
         # if there is no match the dict will contain 'message' key with the details what's wrong
         if items and 'message' in items:
@@ -108,12 +72,14 @@ class Session:
             return items
 
     def _get_payment_cards(self):
-        return self.get(constants.PAYMENTS_CARDS_URL)
+        return requests.get(constants.PAYMENTS_CARDS_URL, headers=self.headers).json()
 
-    def checkout_order(self, card_id: int, cvv: int):
+    def checkout_order(self, order_id: int, card_id: int, cvv: int):
         param = {"addressId": str(self.last_address_id),
                  "cardSecurityCode": str(cvv)}
-        res = self.put(constants.CHECKOUT_URL.format(self.customerOrderId, card_id), param)
+
+        res = requests.put(constants.CHECKOUT_URL.format(self.customerOrderId, card_id),
+                           headers=self.headers, json=param).json()
         return res['code']
 
 
@@ -146,7 +112,7 @@ class Slot:
             # loop through all slot days
             if slot_days:
                 for sd in slot_days:
-                    # go trough the all slots for the day and add only available ones to res
+                    # go trough all the slots for the day and add only available ones to res
                     for s in sd['slots']:
                         if s['slotStatus'] not in ('FULLY_BOOKED', 'UNAVAILABLE'):
                             res[s['slotId']] = s
@@ -177,6 +143,38 @@ class Slot:
             return True
         else:
             raise ValueError(f'Booking failed, see the details: {failures}')
+
+    def book_first_available_slot(self,
+                                  slots: dict,
+                                  branch_id: int,
+                                  postcode: str,
+                                  address_id: int,
+                                  slot_type: str):
+        sd, ed = None, None
+
+        for cur_slot in slots.values():
+            sd = cur_slot['startDateTime']
+            ed = cur_slot['endDateTime']
+
+            try:
+                book = self.book_slot(branch_id=branch_id,
+                                      postcode=postcode,
+                                      address_id=address_id,
+                                      slot_type=slot_type,
+                                      start_date_time=datetime.strptime(sd, '%Y-%m-%dT%H:%M:%SZ'),
+                                      end_date_time=datetime.strptime(ed, '%Y-%m-%dT%H:%M:%SZ'))
+                print(f'The slot "{sd} - {ed}" has been SUCCESSFULLY booked')
+                break
+            except:
+                sd, ed = None, None
+                logging.exception(f'Booking for the slot "{sd} - {ed}" failed, trying to book the next slot')
+                continue
+
+        if sd and ed:
+            # slot has been booked
+            return sd, ed
+        else:
+            raise ValueError('Failed to book all available slots')
 
     def get_current_slot(self):
         variables = {"currentSlotInput": {

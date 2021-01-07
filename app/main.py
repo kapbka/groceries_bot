@@ -1,23 +1,26 @@
 from app.utils import Session, Slot
 import time
 import json
-from datetime import datetime
+
 
 POSTCODE = 'EC1M 6EB' # 'E14 3TJ'
-FULFILMENT_TYPE = 'DELIVERY'
+SLOT_TYPE = 'DELIVERY'
 REQUEST_INTERVAL = 15
 BRANCH_ID = 199 # 753
+
 
 if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='Please, enter login and password to print the slots, '
-                                                 'if necesssary add an interval as the third parameter.')
+                                                 'if necessary add an interval as the third parameter.')
     parser.add_argument('--login', help='User login')
     parser.add_argument('--password', help='User password')
-    parser.add_argument('--fulfilment_type', default=FULFILMENT_TYPE, help='Fulfilment type')
+    parser.add_argument('--fulfilment_type', default=SLOT_TYPE, help='Fulfilment type')
     parser.add_argument('--postcode', default=POSTCODE, help='Post code')
     parser.add_argument('--interval', type=int, default=REQUEST_INTERVAL, help='Interval to check available slots(min)')
+    parser.add_argument('--card_num', type=int, default=None, help='Last 4 card number digits')
+    parser.add_argument('--card_cvv', type=int, default=None, help='CVV (last 3 digits on the back side of the card)')
 
     args = parser.parse_args()
 
@@ -42,36 +45,26 @@ if __name__ == '__main__':
 
             if not available_slots:
                 time.sleep(args.interval*60)
+                continue
             else:
                 print(json.dumps(available_slots, indent=2))
 
-                # we book the first available slot
-                for cur_slot in available_slots.values():
-                    start_date = cur_slot['startDateTime']
-                    end_date = cur_slot['endDateTime']
+                start_date, end_date = slot.book_first_available_slot(slots=available_slots,
+                                                                      branch_id=BRANCH_ID,
+                                                                      postcode=POSTCODE,
+                                                                      address_id=session.last_address_id,
+                                                                      slot_type=SLOT_TYPE)
 
-                    print(f'---------------- BOOKING ATTEMPT FOR THE SLOT "{start_date} - {end_date}" ----------------')
-
-                    # 1. booking
-                    try:
-                        book = slot.book_slot(branch_id=BRANCH_ID,
-                                              postcode=POSTCODE,
-                                              address_id=slot.last_address_id,
-                                              slot_type=FULFILMENT_TYPE,
-                                              start_date_time=datetime.strptime(start_date, '%Y-%m-%dT%H:%M:%SZ'),
-                                              end_date_time=datetime.strptime(end_date, '%Y-%m-%dT%H:%M:%SZ'))
-                        print(f'The slot "{start_date} - {end_date}" has been SUCCESSFULLY booked')
-                    except:
-                        print(f'Booking for the slot "{start_date} - {end_date}" failed, trying to book the next slot')
-                        continue
-
-                    # slot has been booked, exit
-                    break
-
+        basket_product_cnt = None
         # if a basket is empty then adding items from the last order
-        print(session.merge_last_order_to_basket())
-        print(session._get_payment_cards())
-        print(session.checkout_order(33505187324, 825))
+        if not basket_product_cnt:
+            print(session.merge_last_order_to_basket())
+
+        if args.card_num:
+            # first we get internal card_id
+            print(session._get_payment_cards())
+            # second we make a checkout
+            print(session.checkout_order(33505187324, 825))
 
         # all done, exit
         break
