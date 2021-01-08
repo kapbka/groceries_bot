@@ -11,6 +11,8 @@ PRODUCT_LIST_URL = 'https://www.waitrose.com/api/products-prod/v1/products/{}?vi
 
 SHOP_FROM_ORDER_URL = 'https://www.waitrose.com/ecom/myaccount/my-orders/order/shop-from-order/$order_id'
 
+TROLLEY_PRODUCTS_URL = 'https://www.waitrose.com/api/orderitems-prod/v4/orders/{}/trolley'
+
 TROLLEY_ITEMS_URL = 'https://www.waitrose.com/api/orderitems-prod/v4/orders/{}/trolley/items?merge=true'
 
 PAYMENTS_CARDS_URL = 'https://www.waitrose.com/api/payment-orchestration-prod/v1/payments/paymentcards/'

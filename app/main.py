@@ -24,21 +24,20 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if args.card_num and not args.card_cvv:
+        raise argparse.ArgumentTypeError(f'You have to provide cvv if card_num is specified (card_num ***{args.card_num})')
+
     cnt = 0
 
     while True:
         cnt += 1
 
         session = Session(args.login, args.password)
-
         slot = Slot(session=session, fulfilment_type=args.fulfilment_type, postcode=args.postcode)
-
         start_date, end_date = slot.get_current_slot()
 
-        # if we already have a booked slot then nothing
-        if start_date and end_date:
-            print(f'The slot "{start_date} - {end_date}" has already been booked')
-        else:
+        # if there is no booked slot
+        if not start_date and not end_date:
             available_slots = slot.get_available_slots()
 
             print(f'------ Attempt number {cnt} --------------')
@@ -55,16 +54,15 @@ if __name__ == '__main__':
                                                                       address_id=session.last_address_id,
                                                                       slot_type=SLOT_TYPE)
 
-        basket_product_cnt = None
-        # if a basket is empty then adding items from the last order
-        if not basket_product_cnt:
-            print(session.merge_last_order_to_basket())
+        if session.is_trolley_empty():
+            session.merge_order_to_trolley(session.last_order_id)
 
         if args.card_num:
-            # first we get internal card_id
-            print(session._get_payment_cards())
-            # second we make a checkout
-            print(session.checkout_order(33505187324, 825))
+            card_id = session.get_card_id(args.card_num)
+            if not card_id:
+                raise ValueError(f'Card number with last 4 digits "***{args.card_num}" is not found!')
+            else:
+                session.checkout_trolley(session.customerOrderId, args.cvv)
 
         # all done, exit
         break

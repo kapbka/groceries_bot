@@ -22,9 +22,10 @@ class Session:
         self.customerId = int(data['data']['generateSession']['customerId'])
         self.customerOrderId = int(data['data']['generateSession']['customerOrderId'])
 
-        self.last_address_id = self._get_last_address_id()
-        self.last_order = self._get_last_order()
-        self.last_order_id = self._get_last_order_id()
+        self.last_address_id = int(self.get_address_list()[0].get('id', -1))
+
+        self.last_order = next(iter(self.get_order_dict().values()))
+        self.last_order_id = int(self.last_order.get('customerOrderId', -1))
 
     def execute(self, query: str, variables: dict):
         return self.client.execute(
@@ -32,32 +33,26 @@ class Session:
                 variables=variables,
                 headers=self.headers if self.token else {})
 
-    def _get_last_address_id(self):
-        return int(requests.get(constants.LAST_ADDRESS_ID_URL, headers=self.headers).json()[0]['id'])
+    def get_address_list(self):
+        return requests.get(constants.LAST_ADDRESS_ID_URL, headers=self.headers).json()
 
-    def _get_order_list(self):
-        return requests.get(constants.ORDER_LIST_URL, headers=self.headers).json()['content']
+    def get_order_dict(self):
+        r = requests.get(constants.ORDER_LIST_URL, headers=self.headers).json()
+        return {order['customerOrderId']: order for order in r['content']}
 
-    def _get_last_order(self):
-        order_list = self._get_order_list()
-        return order_list[0] if order_list else None
+    def merge_order_to_trolley(self, order_id: int):
+        order = self.get_order_dict()[str(order_id)]
+        line_num_qty_dict = {ol['lineNumber']: ol['quantity'] for ol in order['orderLines']}
+        order_lines = '+'.join(ol for ol in line_num_qty_dict.keys())
+        products = requests.get(constants.PRODUCT_LIST_URL.format(order_lines),
+                                headers=self.headers).json() if order_lines else {}
 
-    def _get_last_order_id(self):
-        return int(self.last_order['customerOrderId']) if self.last_order else None
-
-    def _get_products(self):
-        order_lines = '+'.join([order_item['lineNumber']
-                                for order_item in self.last_order['orderLines'] if self.last_order])
-        return requests.get(constants.PRODUCT_LIST_URL.format(order_lines), headers=self.headers).json() if order_lines else {}
-
-    def merge_last_order_to_basket(self, order_id: int):
         res = []
-        last_order_dict = {ol['lineNumber']: ol for ol in self.last_order['orderLines']}
-        for p in self._get_products()['products']:
+        for p in products['products']:
             pl = dict(canSubstitute='false',
                       lineNumber=str(p['lineNumber']),
                       productId=str(p['id']),
-                      quantity=last_order_dict[str(p['lineNumber'])]['quantity'],
+                      quantity=line_num_qty_dict[p['lineNumber']],
                       reservedQuantity=0,
                       trolleyItemId=-1)
             res.append(pl)
@@ -71,10 +66,20 @@ class Session:
         else:
             return items
 
-    def _get_payment_cards(self):
+    def is_trolley_empty(self):
+        r = requests.get(constants.PRODUCT_LIST_URL.format(self.customerOrderId), headers=self.headers).json()
+        return len(r['trolley']['trolleyItems']) == 0
+
+    def get_payment_card_list(self):
         return requests.get(constants.PAYMENTS_CARDS_URL, headers=self.headers).json()
 
-    def checkout_order(self, order_id: int, card_id: int, cvv: int):
+    def get_card_id(self, card_num: int):
+        cards = self.get_payment_card_list()
+        for card in cards:
+            if card['maskedCardNumber'].endswith(str(card_num)):
+                return card['id']
+
+    def checkout_trolley(self, card_id: int, cvv: int):
         param = {"addressId": str(self.last_address_id),
                  "cardSecurityCode": str(cvv)}
 
