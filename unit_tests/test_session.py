@@ -6,7 +6,7 @@ import pytest
 import requests
 import mock
 
-from app import utils
+from app import session
 from app import constants
 
 LAST_ADDRESS_ID_GV = 40407464
@@ -427,7 +427,7 @@ def session_values():
 
 @pytest.fixture
 def session(session_values):
-    return utils.Session(**session_values)
+    return session.Session(**session_values)
 
 
 def test_create_session(session_values, session):
@@ -438,13 +438,13 @@ def test_create_session(session_values, session):
 def test_create_invalid_login(session_values):
     session_values['login'] = 'dfsdfsfs@gmail.com'
     with pytest.raises(requests.exceptions.HTTPError):
-        utils.Session(**session_values)
+        session.Session(**session_values)
 
 
 def test_create_invalid_password(session_values):
     session_values['password'] = 'test'
     with pytest.raises(requests.exceptions.HTTPError):
-        utils.Session(**session_values)
+        session.Session(**session_values)
 
 
 def test_get_last_address_id(session):

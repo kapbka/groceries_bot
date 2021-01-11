@@ -5,7 +5,9 @@ Command line: python -m pytest unit_tests/test_slot.py
 import pytest
 import mock
 
-from app import utils
+from app import session
+from app import slot
+from app import waitrose
 from app import constants
 from datetime import datetime
 import copy

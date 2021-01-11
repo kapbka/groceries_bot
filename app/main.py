@@ -33,33 +33,21 @@ if __name__ == '__main__':
         cnt += 1
 
         session = Session(args.login, args.password)
-        slot = Slot(session=session, fulfilment_type=args.fulfilment_type, postcode=args.postcode)
+        slot = Slot(session=session, slot_type=args.fulfilment_type)
         start_date, end_date = slot.get_current_slot()
 
         # if there is no booked slot
         if not start_date and not end_date:
-            available_slots = slot.get_available_slots()
-
             print(f'------ Attempt number {cnt} --------------')
-
-            if not available_slots:
-                time.sleep(args.interval*60)
+            start_date, end_date = slot.book_first_available_slot()
+            if not start_date and not end_date:
                 continue
-            else:
-                print(json.dumps(available_slots, indent=2))
-
-                start_date, end_date = slot.book_first_available_slot(slots=available_slots,
-                                                                      branch_id=BRANCH_ID,
-                                                                      postcode=POSTCODE,
-                                                                      address_id=session.last_address_id,
-                                                                      slot_type=SLOT_TYPE)
 
         if session.is_trolley_empty():
             session.merge_order_to_trolley(session.last_order_id)
 
         if args.card_num:
-            card_id = session.get_card_id(args.card_num)
-            session.checkout_trolley(session.customerOrderId, args.cvv)
+            session.checkout_trolley(session.get_card_id(args.card_num), args.cvv)
 
         # all done, exit
         break
