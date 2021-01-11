@@ -9,12 +9,11 @@ import mock
 from app import utils
 from app import constants
 
-
 LAST_ADDRESS_ID_GV = 40407464
 LAST_ORDER_ID = 1001283128
 
-ORDER_LIST = {
-    "content": [{
+ORDER_DICT = {
+    "1001283128": {
         "customerOrderId": "1001283128",
         "status": "COMPLETED",
         "bagless": "true",
@@ -83,7 +82,7 @@ ORDER_LIST = {
             "orderLineStatus": "IN_STOCK",
             "orderLineType": "GROCERY"
         }, {
-            "lineNumber": "859955",
+            "lineNumber": "883135",
             "adjustments": [],
             "salePrice": {
                 "amount": 2.6,
@@ -104,7 +103,7 @@ ORDER_LIST = {
             "orderLineType": "GROCERY"
         }]
     },
-    {
+    "1001283126": {
         "customerOrderId": "1001283126",
         "status": "COMPLETED",
         "bagless": "true",
@@ -193,7 +192,7 @@ ORDER_LIST = {
             "orderLineStatus": "IN_STOCK",
             "orderLineType": "GROCERY"
         }]
-    }]
+    }
 }
 
 PRODUCT_LIST = {
@@ -319,7 +318,103 @@ PRODUCT_LIST = {
     }]
 }
 
-LAST_ORDER = ORDER_LIST['content'][0]
+TROLLEY_ITEMS_DICT_OK = {
+    "trolley": {
+        "orderId": str(LAST_ORDER_ID),
+        "customerId": "479600461",
+        "trolleyItems": [{
+            "trolleyItemId": 1,
+            "lineNumber": "883134",
+            "productId": "796466-143216-143217",
+            "quantity": {
+                "amount": 1,
+                "uom": "C62"
+            },
+            "retailPrice": {
+                "quantity": {
+                    "amount": 1,
+                    "uom": "C62"
+                },
+                "price": {
+                    "amount": 2.25,
+                    "currencyCode": "GBP"
+                }
+            },
+            "canSubstitute": "false",
+            "triggeredPromotions": [],
+            "untriggeredPromotions": [],
+            "promotionDetails": [],
+            "totalPrice": {
+                "amount": 2.25,
+                "currencyCode": "GBP"
+            },
+            "saving": {
+                "amount": 0,
+                "currencyCode": "GBP"
+            },
+            "salePrice": {
+                "amount": 2.25,
+                "currencyCode": "GBP"
+            },
+            "price": {
+                "amount": 2.25,
+                "currencyCode": "GBP"
+            },
+            "reservedQuantity": 0
+        }, {
+            "trolleyItemId": 2,
+            "lineNumber": "883135",
+            "productId": "867143-373749-373750",
+            "quantity": {
+                "amount": 2,
+                "uom": "C62"
+            },
+            "retailPrice": {
+                "quantity": {
+                    "amount": 1,
+                    "uom": "C62"
+                },
+                "price": {
+                    "amount": 4.5,
+                    "currencyCode": "GBP"
+                }
+            },
+            "canSubstitute": "false",
+            "triggeredPromotions": [],
+            "untriggeredPromotions": [],
+            "promotionDetails": [],
+            "totalPrice": {
+                "amount": 9.0,
+                "currencyCode": "GBP"
+            },
+            "saving": {
+                "amount": 0,
+                "currencyCode": "GBP"
+            },
+            "salePrice": {
+                "amount": 4.5,
+                "currencyCode": "GBP"
+            },
+            "price": {
+                "amount": 9.0,
+                "currencyCode": "GBP"
+            },
+            "reservedQuantity": 0
+        }]
+    }
+}
+
+TROLLEY_ITEMS_DICT_FAIL = {'message': 'Could not map request data to request object', 'field': ''}
+
+PAYMENT_CARD_LIST_OK = [{'id': '12345678901', 'cardholderName': 'Ivan Ivanov', 'expiryDate': '0525',
+                         'maskedCardNumber': '123456******1234', 'schemeName': 'Debit Visa',
+                         'addressId': '36224408'}]
+
+PAYMENT_CARD_LIST_FAIL = []
+
+TROLLEY_CHECKOUT_OK = {"code": "OK"}
+
+TROLLEY_CHECKOUT_FAIL = {"code": "FAIL"}
 
 
 @pytest.fixture
@@ -358,9 +453,50 @@ def test_get_last_address_id(session):
     assert LAST_ADDRESS_ID_GV == last_address_id
 
 
-def test_merge_last_order_to_basket(session):
-    session._get_order_list = mock.MagicMock(return_value=ORDER_LIST)
-    session._get_last_order = mock.MagicMock(return_value=LAST_ORDER)
-    session._get_last_order_id = mock.MagicMock(return_value=LAST_ORDER_ID)
-    session._get_products = mock.MagicMock(return_value=LAST_ORDER_ID)
+@mock.patch("requests.get",
+            mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=PRODUCT_LIST))))
+@mock.patch("requests.patch",
+            mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=TROLLEY_ITEMS_DICT_OK))))
+def test_merge_order_to_trolley_ok(session):
+    session.get_order_dict = mock.MagicMock(return_value=ORDER_DICT)
+    session.merge_order_to_trolley(1001283128)
 
+
+@mock.patch("requests.get",
+            mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=PRODUCT_LIST))))
+@mock.patch("requests.patch",
+            mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=TROLLEY_ITEMS_DICT_FAIL))))
+def test_merge_order_to_trolley_fail(session):
+    session.get_order_dict = mock.MagicMock(return_value=ORDER_DICT)
+    with pytest.raises(ValueError):
+        session.merge_order_to_trolley(1001283128)
+
+
+def test_get_card_id_ok(session):
+    session.get_payment_card_list = mock.MagicMock(return_value=PAYMENT_CARD_LIST_OK)
+    card_id = session.get_card_id(1234)
+    assert card_id == PAYMENT_CARD_LIST_OK[0]['id']
+
+
+def test_get_card_id_fail(session):
+    session.get_payment_card_list = mock.MagicMock(return_value=PAYMENT_CARD_LIST_FAIL)
+    with pytest.raises(ValueError):
+        card_id = session.get_card_id(1234)
+
+
+@mock.patch("requests.put",
+            mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=TROLLEY_CHECKOUT_OK))))
+def test_checkout_trolley_ok(session):
+    session.get_payment_card_list = mock.MagicMock(return_value=PAYMENT_CARD_LIST_OK)
+    card_id = session.get_card_id(1234)
+    res = session.checkout_trolley(card_id, 123)
+    assert res == 'OK'
+
+
+@mock.patch("requests.put",
+            mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=TROLLEY_CHECKOUT_FAIL))))
+def test_checkout_trolley_fail(session):
+    session.get_payment_card_list = mock.MagicMock(return_value=PAYMENT_CARD_LIST_OK)
+    card_id = session.get_card_id(1234)
+    res = session.checkout_trolley(card_id, 123)
+    assert res == 'FAIL'

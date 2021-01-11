@@ -59,10 +59,7 @@ if __name__ == '__main__':
 
         if args.card_num:
             card_id = session.get_card_id(args.card_num)
-            if not card_id:
-                raise ValueError(f'Card number with last 4 digits "***{args.card_num}" is not found!')
-            else:
-                session.checkout_trolley(session.customerOrderId, args.cvv)
+            session.checkout_trolley(session.customerOrderId, args.cvv)
 
         # all done, exit
         break

@@ -6,6 +6,9 @@ import logging
 import typing
 
 
+SUN, MON, TUE, WED, THU, FRI, SAT = range(7)
+
+
 class Session:
     def __init__(self, login: str, password: str):
         self.login = login
@@ -24,8 +27,9 @@ class Session:
 
         self.last_address_id = int(self.get_address_list()[0].get('id', -1))
 
-        self.last_order = next(iter(self.get_order_dict().values()))
-        self.last_order_id = int(self.last_order.get('customerOrderId', -1))
+        orders = self.get_order_dict()
+        self.last_order = next(iter(orders.values())) if orders else None
+        self.last_order_id = int(self.last_order.get('customerOrderId', -1)) if orders else None
 
     def execute(self, query: str, variables: dict):
         return self.client.execute(
@@ -63,12 +67,10 @@ class Session:
         # if there is no match the dict will contain 'message' key with the details what's wrong
         if items and 'message' in items:
             raise ValueError(items['message'])
-        else:
-            return items
 
     def is_trolley_empty(self):
         r = requests.get(constants.PRODUCT_LIST_URL.format(self.customerOrderId), headers=self.headers).json()
-        return len(r['trolley']['trolleyItems']) == 0
+        return not r['trolley']['trolleyItems']
 
     def get_payment_card_list(self):
         return requests.get(constants.PAYMENTS_CARDS_URL, headers=self.headers).json()
@@ -78,6 +80,7 @@ class Session:
         for card in cards:
             if card['maskedCardNumber'].endswith(str(card_num)):
                 return card['id']
+        raise ValueError(f'Card number with last 4 digits "***{card_num}" is not found!')
 
     def checkout_trolley(self, card_id: int, cvv: int):
         param = {"addressId": str(self.last_address_id),
