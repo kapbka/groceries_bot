@@ -1,12 +1,8 @@
 from app.utils import Session, Slot
-import time
-import json
 
 
-POSTCODE = 'EC1M 6EB' # 'E14 3TJ'
 SLOT_TYPE = 'DELIVERY'
 REQUEST_INTERVAL = 15
-BRANCH_ID = 199 # 753
 
 
 if __name__ == '__main__':
@@ -16,8 +12,7 @@ if __name__ == '__main__':
                                                  'if necessary add an interval as the third parameter.')
     parser.add_argument('--login', help='User login')
     parser.add_argument('--password', help='User password')
-    parser.add_argument('--fulfilment_type', default=SLOT_TYPE, help='Fulfilment type')
-    parser.add_argument('--postcode', default=POSTCODE, help='Post code')
+    parser.add_argument('--slot_type', default=SLOT_TYPE, help='Slot type (DELIVERY, COLLECT)')
     parser.add_argument('--interval', type=int, default=REQUEST_INTERVAL, help='Interval to check available slots(min)')
     parser.add_argument('--card_num', type=int, default=None, help='Last 4 card number digits')
     parser.add_argument('--card_cvv', type=int, default=None, help='CVV (last 3 digits on the back side of the card)')
