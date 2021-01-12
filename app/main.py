@@ -1,4 +1,6 @@
-from app.utils import Session, Slot
+from app.session import Session
+from app.slot import Slot
+import time
 
 
 SLOT_TYPE = 'DELIVERY'
@@ -28,18 +30,20 @@ if __name__ == '__main__':
         cnt += 1
 
         session = Session(args.login, args.password)
-        slot = Slot(session=session, slot_type=args.fulfilment_type)
+        slot = Slot(session=session, slot_type=args.slot_type)
         start_date, end_date = slot.get_current_slot()
 
         # if there is no booked slot
         if not start_date and not end_date:
             print(f'------ Attempt number {cnt} --------------')
-            start_date, end_date = slot.book_first_available_slot()
-            if not start_date and not end_date:
+            try:
+                start_date, end_date = slot.book_first_available_slot()
+            except ValueError:
+                time.sleep(args.interval * 60)
                 continue
 
         if session.is_trolley_empty():
-            session.merge_order_to_trolley(session.last_order_id)
+            session.merge_order_to_trolley()
 
         if args.card_num:
             session.checkout_trolley(session.get_card_id(args.card_num), args.cvv)

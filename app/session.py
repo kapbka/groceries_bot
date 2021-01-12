@@ -23,12 +23,7 @@ class Session:
         self.default_branch_id = int(account_data['preferences']['defaultBranchId'])
 
         address_list = self.get_address_list()
-        self.default_postcode = filter(lambda x: x['postalCode'] if x['id'] == self.default_address_id else None,
-                                       address_list)
-
-        orders = self.get_order_dict()
-        self.last_order = next(iter(orders.values())) if orders else None
-        self.last_order_id = int(self.last_order['customerOrderId'])
+        self.default_postcode = next(iter(filter(lambda x: int(x['id']) == self.default_address_id, address_list)))
 
     def execute(self, query: str, variables: dict):
         return self.client.execute(
@@ -43,8 +38,13 @@ class Session:
         r = requests.get(constants.ORDER_LIST_URL, headers=self.headers).json()
         return {order['customerOrderId']: order for order in r['content']}
 
-    def merge_order_to_trolley(self, order_id: int):
-        order = self.get_order_dict()[str(order_id)]
+    def merge_last_order_to_trolley(self):
+        try:
+            order = next(iter(self.get_order_dict().values()))
+        except StopIteration:
+            raise ValueError('No orders found, but the slot has been booked. '
+                             'Please fill in the basket manually via Waitrose mobile application or website')
+
         line_num_qty_dict = {ol['lineNumber']: ol['quantity'] for ol in order['orderLines']}
         order_lines = '+'.join(ol for ol in line_num_qty_dict.keys())
         products = requests.get(constants.PRODUCT_LIST_URL.format(order_lines),
@@ -61,10 +61,10 @@ class Session:
             res.append(pl)
 
         items = requests.patch(constants.TROLLEY_ITEMS_URL.format(self.customerOrderId),
-                               headers=self.headers, json=res).json() if res else None
+                               headers=self.headers, json=res).json() if res else {}
 
         # if there is no match the dict will contain 'message' key with the details what's wrong
-        if items and 'message' in items:
+        if 'message' in items:
             raise ValueError(items['message'])
 
     def is_trolley_empty(self):
@@ -72,7 +72,11 @@ class Session:
         return not r['trolley']['trolleyItems']
 
     def get_payment_card_list(self):
-        return requests.get(constants.PAYMENTS_CARDS_URL, headers=self.headers).json()
+        card_list = requests.get(constants.PAYMENTS_CARDS_URL, headers=self.headers).json()
+        if not card_list:
+            raise ValueError('No cards added to your Waitrose profile. Please, adjust your profile properly '
+                             'via Waitrose mobile application or website')
+        return card_list
 
     def get_card_id(self, card_num: int):
         cards = self.get_payment_card_list()

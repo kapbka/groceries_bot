@@ -19,14 +19,12 @@ class Waitrose:
         if not start_date and not end_date:
             start_date, end_date = slot.book_first_available_slot()
 
+    def checkout_trolley(self):
         # if a trolley is empty will try to fill it in with items from the last order
         if self.session.is_trolley_empty():
-            self.session.merge_order_to_trolley(self.session.last_order_id)
+            self.session.merge_last_order_to_trolley()
 
         # if cvv is passed proceed with checkout not to lose the slot
         if self.cvv:
             card_list = self.session.get_payment_card_list()
-            if not card_list:
-                raise ValueError('No cards added to your Tesco profile. Please, adjust your profile properly via '
-                                 'Tesco mobile application or website')
             self.session.checkout_trolley(self.session.customerOrderId, card_list[0], self.cvv)
