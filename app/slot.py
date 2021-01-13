@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import logging
 from app import constants
-from session import Session
+from app.session import Session
 from enum import IntEnum
 
 
@@ -27,42 +27,44 @@ class Slot:
 
         return slots_json['data']['slotDays']['content']
 
-    def get_available_slots(self, slot_filter: list = None, page_cnt: int = 4):
+    def get_available_slots(self, slot_filter: dict = None, page_cnt: int = 4):
         """
         Returns all available slots with filters if necessary
-        :param slot_filter: list which contains 3 elements: weekday, start slot time, end slot time:
-                            [('fri', datetime.time(16, 00, 00), datetime.time(17, 00, 00))]
+        :param slot_filter: list which contains tuples each of which contains 3 elements:
+                            weekday, start slot time, end slot time:
+                            {'fri': (datetime.time(16, 00, 00), datetime.time(20, 00, 00)),
+                             'sun': (datetime.time(12, 00, 00), datetime.time(18, 00, 00))}
         :param page_cnt: the number of pages, each page contains 5 days, sometimes only 2 pages available on waitrose website
         :return: dict with slots
         """
         # slot filter validation
-        slot_day, slot_start_time, slot_end_time = None, None, None
         if slot_filter:
-            if isinstance(slot_filter, list) or len(slot_filter) != 3:
-                raise ValueError('slot_filter parameter must be a list and contain 3 mandatory elements: '
-                                 'weekday: "sun mon tue wed thu fri sat", start slot time, end slot time!')
-            slot_day, slot_start_time, slot_end_time = slot_filter
-            if not isinstance(slot_day, str) or slot_day.lower() not in WEEKDAYS._value2member_map_:
-                raise ValueError('Wrong first filter element, must be on of the work days: mon tue wed thu fri sat sun')
-            if not isinstance(slot_start_time, datetime.time):
-                raise ValueError('Wrong second filter element, must be beginning time of a slot')
-            if not isinstance(slot_end_time, datetime.time):
-                raise ValueError('Wrong third filter element, must be end time of a slot')
+            if not isinstance(slot_filter, dict):
+                raise ValueError('slot_filter parameter must be a dict!')
+            for k, v in slot_filter.items():
+                if not isinstance(k, str) or k.lower() not in [e.name for e in WEEKDAYS]:
+                    raise ValueError('Wrong work day, must be on of the work days: mon tue wed thu fri sat sun')
+                if len(v) == 0:
+                    raise ValueError(f'No slots passed for "{k}"')
+                for t in v:
+                    if not isinstance(t, time):
+                        raise ValueError('A filter value must be time for dayweek {k}')
 
         res = {}
         for si in range(page_cnt):
             slot_days = self.get_slots(branch_id=self.session.default_branch_id, date_from=datetime.today() + timedelta(si*5))
             for sd in slot_days:
-                if not slot_filter or datetime.strptime(sd['date'], '%Y-%m-%dZ').weekday() == WEEKDAYS.slot_day.value:
+                sd_weekday = datetime.strptime(sd['date'], '%Y-%m-%d').weekday()
+                sd_weekday = WEEKDAYS(sd_weekday).name
+                if not slot_filter or sd_weekday in list(slot_filter.keys()):
                     res.update({s['slotId']: s for s in sd['slots']
                                 if s['slotStatus'] not in ['FULLY_BOOKED', 'UNAVAILABLE']
                                 and
                                 (not slot_filter
                                  or
-                                 datetime.strptime(s['startDateTime'], '%Y-%m-%dT%H:%M:%SZ').time() <= slot_start_time
-                                 and
-                                 datetime.strptime(s['endDateTime'], '%Y-%m-%dT%H:%M:%SZ').time() >= slot_end_time)
-                                })
+                                 datetime.strptime(s['startDateTime'], '%Y-%m-%dT%H:%M:%SZ').time() in
+                                 slot_filter[sd_weekday])
+                              })
                 else:
                     continue
 

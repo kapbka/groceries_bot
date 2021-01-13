@@ -5,11 +5,10 @@ Command line: python -m pytest unit_tests/test_session.py
 import pytest
 import requests
 import mock
+from app.session import Session
 
-from app import session
-from app import constants
 
-LAST_ADDRESS_ID_GV = 40407464
+DEFAULT_ADDRESS_ID_GV = 40407464
 LAST_ORDER_ID = 1001283128
 
 ORDER_DICT = {
@@ -427,7 +426,7 @@ def session_values():
 
 @pytest.fixture
 def session(session_values):
-    return session.Session(**session_values)
+    return Session(**session_values)
 
 
 def test_create_session(session_values, session):
@@ -438,38 +437,38 @@ def test_create_session(session_values, session):
 def test_create_invalid_login(session_values):
     session_values['login'] = 'dfsdfsfs@gmail.com'
     with pytest.raises(requests.exceptions.HTTPError):
-        session.Session(**session_values)
+        Session(**session_values)
 
 
 def test_create_invalid_password(session_values):
     session_values['password'] = 'test'
     with pytest.raises(requests.exceptions.HTTPError):
-        session.Session(**session_values)
+        Session(**session_values)
 
 
 def test_get_last_address_id(session):
-    session._get_last_address_id = mock.MagicMock(return_value=LAST_ADDRESS_ID_GV)
+    session._get_last_address_id = mock.MagicMock(return_value=DEFAULT_ADDRESS_ID_GV)
     last_address_id = session._get_last_address_id()
-    assert LAST_ADDRESS_ID_GV == last_address_id
+    assert DEFAULT_ADDRESS_ID_GV == last_address_id
 
 
 @mock.patch("requests.get",
             mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=PRODUCT_LIST))))
 @mock.patch("requests.patch",
             mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=TROLLEY_ITEMS_DICT_OK))))
-def test_merge_order_to_trolley_ok(session):
+def test_merge_last_order_to_trolley_ok(session):
     session.get_order_dict = mock.MagicMock(return_value=ORDER_DICT)
-    session.merge_order_to_trolley(1001283128)
+    session.merge_last_order_to_trolley()
 
 
 @mock.patch("requests.get",
             mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=PRODUCT_LIST))))
 @mock.patch("requests.patch",
             mock.MagicMock(return_value=mock.MagicMock(json=mock.MagicMock(return_value=TROLLEY_ITEMS_DICT_FAIL))))
-def test_merge_order_to_trolley_fail(session):
+def test_merge_last_order_to_trolley_fail(session):
     session.get_order_dict = mock.MagicMock(return_value=ORDER_DICT)
     with pytest.raises(ValueError):
-        session.merge_order_to_trolley(1001283128)
+        session.merge_last_order_to_trolley()
 
 
 def test_get_card_id_ok(session):

@@ -1,19 +1,16 @@
 """
-Tests for Session class
+Tests for Slot class
 Command line: python -m pytest unit_tests/test_slot.py
 """
 import pytest
 import mock
 
-from app import session
-from app import slot
-from app import waitrose
+from app.slot import Slot
 from app import constants
-from datetime import datetime
-import copy
+from datetime import datetime, time
 
-LAST_ADDRESS_ID_GV = 40407464
-LAST_ADDRESS_GV = [{'id': LAST_ADDRESS_ID_GV}]
+DEFAULT_ADDRESS_ID_GV = 40407464
+DEFAULT_ADDRESS_GV = [{'id': DEFAULT_ADDRESS_ID_GV}]
 CUSTOMER_ORDER_ID_GV = 109235634
 CUSTOMER_ID_GV = 558661841
 BRANCH_ID = 753
@@ -33,7 +30,7 @@ SLOTS_JSON = {
                     'startDateTime': '2020-12-19T07:00:00Z',
                     'endDateTime': '2020-12-19T08:00:00Z',
                     'shopByDateTime': None,
-                    'slotStatus': 'UNAVAILABLE'
+                    'slotStatus': 'AVAILABLE'
                 }, {
                     'slotId': '2020-12-19_08:00_09:00',
                     'startDateTime': '2020-12-19T08:00:00Z',
@@ -41,7 +38,27 @@ SLOTS_JSON = {
                     'shopByDateTime': None,
                     'slotStatus': 'UNAVAILABLE'
                 }]
-            }],
+            },
+            {
+                'id': str(BRANCH_ID) + '_' + SLOT_TYPE + '_2020-12-20',
+                'branchId': BRANCH_ID,
+                'slotType': SLOT_TYPE,
+                'date': '2020-12-20',
+                'slots': [{
+                    'slotId': '2020-12-20_14:00_08:00',
+                    'startDateTime': '2020-12-20T14:00:00Z',
+                    'endDateTime': '2020-12-20T15:00:00Z',
+                    'shopByDateTime': None,
+                    'slotStatus': 'AVAILABLE'
+                }, {
+                    'slotId': '2020-12-20_18:00_19:00',
+                    'startDateTime': '2020-12-20T18:00:00Z',
+                    'endDateTime': '2020-12-20T19:00:00Z',
+                    'shopByDateTime': None,
+                    'slotStatus': 'AVAILABLE'
+                }]
+            }
+            ],
             'failures': None
         }
     }
@@ -57,7 +74,7 @@ SLOTS_LIST = [{
         'startDateTime': '2020-12-19T07:00:00Z',
         'endDateTime': '2020-12-19T08:00:00Z',
         'shopByDateTime': None,
-        'slotStatus': 'UNAVAILABLE'
+        'slotStatus': 'AVAILABLE'
     }, {
         'slotId': '2020-12-19_08:00_09:00',
         'startDateTime': '2020-12-19T08:00:00Z',
@@ -65,7 +82,66 @@ SLOTS_LIST = [{
         'shopByDateTime': None,
         'slotStatus': 'UNAVAILABLE'
     }]
-}]
+},
+    {
+        'id': str(BRANCH_ID) + '_' + SLOT_TYPE + '_2020-12-20',
+        'branchId': BRANCH_ID,
+        'slotType': SLOT_TYPE,
+        'date': '2020-12-20',
+        'slots': [{
+            'slotId': '2020-12-20_14:00_08:00',
+            'startDateTime': '2020-12-20T14:00:00Z',
+            'endDateTime': '2020-12-20T15:00:00Z',
+            'shopByDateTime': None,
+            'slotStatus': 'AVAILABLE'
+        }, {
+            'slotId': '2020-12-20_18:00_19:00',
+            'startDateTime': '2020-12-20T18:00:00Z',
+            'endDateTime': '2020-12-20T19:00:00Z',
+            'shopByDateTime': None,
+            'slotStatus': 'AVAILABLE'
+        }]
+    }
+]
+
+AVAILABLE_SLOT_DICT = {'2020-12-19_07:00_08:00': {
+    'slotId': '2020-12-19_07:00_08:00',
+    'startDateTime': '2020-12-19T07:00:00Z',
+    'endDateTime': '2020-12-19T08:00:00Z',
+    'shopByDateTime': None,
+    'slotStatus': 'AVAILABLE'
+    },
+    '2020-12-20_14:00_08:00': {
+        'slotId': '2020-12-20_14:00_15:00',
+        'startDateTime': '2020-12-20T14:00:00Z',
+        'endDateTime': '2020-12-20T15:00:00Z',
+        'shopByDateTime': None,
+        'slotStatus': 'AVAILABLE'
+    },
+    '2020-12-20_18:00_19:00': {
+        'slotId': '2020-12-20_18:00_19:00',
+        'startDateTime': '2020-12-20T18:00:00Z',
+        'endDateTime': '2020-12-20T19:00:00Z',
+        'shopByDateTime': None,
+        'slotStatus': 'AVAILABLE'
+    }
+}
+
+AVAILABLE_SLOT_DICT_FILTERED = {'2020-12-19_07:00_08:00': {
+    'slotId': '2020-12-19_07:00_08:00',
+    'startDateTime': '2020-12-19T07:00:00Z',
+    'endDateTime': '2020-12-19T08:00:00Z',
+    'shopByDateTime': None,
+    'slotStatus': 'AVAILABLE'
+    },
+    '2020-12-20_18:00_19:00': {
+        'slotId': '2020-12-20_18:00_19:00',
+        'startDateTime': '2020-12-20T18:00:00Z',
+        'endDateTime': '2020-12-20T19:00:00Z',
+        'shopByDateTime': None,
+        'slotStatus': 'AVAILABLE'
+    }
+}
 
 BOOK_SLOT_JSON_OK = {
     "data": {
@@ -126,7 +202,7 @@ def session():
         token='fake',
         customerOrderId=CUSTOMER_ORDER_ID_GV,
         customerId=CUSTOMER_ID_GV,
-        last_address_id=LAST_ADDRESS_ID_GV
+        default_address_id=DEFAULT_ADDRESS_ID_GV
     )
 
 
@@ -134,14 +210,13 @@ def session():
 def slot_values(session):
     return {
         'session': session,
-        'fulfilment_type': SLOT_TYPE,
-        'postcode': POSTCODE
+        'slot_type': SLOT_TYPE
     }
 
 
 @pytest.fixture
 def slot(slot_values):
-    return utils.Slot(**slot_values)
+    return Slot(**slot_values)
 
 
 def test_get_slot(slot_values, slot):
@@ -159,7 +234,7 @@ def test_get_slots(slot_values, slot):
         "branchId": str(BRANCH_ID),
         "slotType": SLOT_TYPE,
         "customerOrderId": str(CUSTOMER_ORDER_ID_GV),
-        "addressId": str(LAST_ADDRESS_ID_GV),
+        "addressId": str(DEFAULT_ADDRESS_ID_GV),
         "fromDate": datetime.today().strftime('%Y-%m-%d'),
         "size": 5
     }}
@@ -167,9 +242,23 @@ def test_get_slots(slot_values, slot):
     slot.session.execute.assert_called_with(constants.SLOT_QUERY, variables)
 
 
+def test_get_available_slots_no_filter(slot_values, slot):
+    slot.session.execute = mock.MagicMock(return_value=SLOTS_JSON)
+    available_slots = slot.get_available_slots()
+    assert AVAILABLE_SLOT_DICT == available_slots
+
+
+def test_get_available_slots_with_filter(slot_values, slot):
+    slot.session.execute = mock.MagicMock(return_value=SLOTS_JSON)
+    slot_filter = {'sat': (time(7, 0, 0),),
+                   'sun': (time(18, 0, 0), time(20, 0, 0))}
+    available_slots = slot.get_available_slots(slot_filter)
+    assert AVAILABLE_SLOT_DICT_FILTERED == available_slots
+
+
 def test_book_slot_ok(slot_values, slot):
     slot.session.execute = mock.MagicMock(return_value=BOOK_SLOT_JSON_OK)
-    book_slot = slot.book_slot(branch_id=BRANCH_ID, postcode=POSTCODE, address_id=LAST_ADDRESS_ID_GV, slot_type=SLOT_TYPE,
+    book_slot = slot.book_slot(branch_id=BRANCH_ID, postcode=POSTCODE, address_id=DEFAULT_ADDRESS_ID_GV, slot_type=SLOT_TYPE,
                                start_date_time=datetime.strptime('2020-12-19 07:00:00', '%Y-%m-%d %H:%M:%S'),
                                end_date_time=datetime.strptime('2020-12-19 08:00:00', '%Y-%m-%d %H:%M:%S'))
     assert book_slot
@@ -181,7 +270,7 @@ def test_book_slot_ok(slot_values, slot):
         "customerOrderId": str(CUSTOMER_ORDER_ID_GV),
         "customerId": str(CUSTOMER_ID_GV),
         "postcode": POSTCODE,
-        "addressId": str(LAST_ADDRESS_ID_GV),
+        "addressId": str(DEFAULT_ADDRESS_ID_GV),
         "startDateTime": "2020-12-19T07:00:00Z",
         "endDateTime": "2020-12-19T08:00:00Z"}
     }
@@ -192,7 +281,7 @@ def test_book_slot_ok(slot_values, slot):
 def test_book_slot_failure(slot_values, slot):
     slot.session.execute = mock.MagicMock(return_value=BOOK_SLOT_JSON_FAIL)
     with pytest.raises(ValueError):
-        book_slot = slot.book_slot(branch_id=BRANCH_ID, postcode=POSTCODE, address_id=LAST_ADDRESS_ID_GV, slot_type=SLOT_TYPE,
+        book_slot = slot.book_slot(branch_id=BRANCH_ID, postcode=POSTCODE, address_id=DEFAULT_ADDRESS_ID_GV, slot_type=SLOT_TYPE,
                                    start_date_time=datetime.strptime('2020-12-19 07:00:00', '%Y-%m-%d %H:%M:%S'),
                                    end_date_time=datetime.strptime('2020-12-19 08:00:00', '%Y-%m-%d %H:%M:%S'))
 
@@ -203,7 +292,7 @@ def test_book_slot_failure(slot_values, slot):
         "customerOrderId": str(CUSTOMER_ORDER_ID_GV),
         "customerId": str(CUSTOMER_ID_GV),
         "postcode": POSTCODE,
-        "addressId": str(LAST_ADDRESS_ID_GV),
+        "addressId": str(DEFAULT_ADDRESS_ID_GV),
         "startDateTime": "2020-12-19T07:00:00Z",
         "endDateTime": "2020-12-19T08:00:00Z"}
     }
