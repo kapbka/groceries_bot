@@ -1,86 +1,88 @@
-# telegram bot
+# telegram bot classes
 
+import uuid
 from telegram.ext import Updater
-from telegram.ext import CommandHandler, CallbackQueryHandler
+from telegram import Update
+from telegram.ext import CommandHandler, CallbackQueryHandler, MessageHandler, Filters, CallbackContext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-############################### Bot ############################################
-def start(bot, update):
-  bot.message.reply_text(main_menu_message(),
-                         reply_markup=main_menu_keyboard())
+class BotState:
+    is_waiting_login = False
+    is_waiting_password = False
+    is_waiting_cvv = False
 
 
-def main_menu(bot, update):
-  bot.callback_query.message.edit_text(main_menu_message(),
-                          reply_markup=main_menu_keyboard())
+class Menu:
+    def __init__(self, display_name: str, children: list):
+        self.name = str(uuid.uuid4())
+        self.display_name = display_name
+        self.parent = None
+        self.children = children
+
+    def register(self, dispatcher):
+        dispatcher.add_handler(CallbackQueryHandler(self.display, pattern=self.name))
+        for c in self.children:
+            c.parent = self
+            c.register(dispatcher)
+
+    def display(self, bot, update):
+        bot.callback_query.message.edit_text(self.display_name, reply_markup=self.menu_keyboard())
+
+    def menu_keyboard(self):
+        res = [[InlineKeyboardButton(c.display_name, callback_data=c.name)] for c in self.children]
+        if self.parent:
+            res.append([InlineKeyboardButton('Back to ' + self.parent.display_name, callback_data=self.parent.name)])
+        return InlineKeyboardMarkup(res)
 
 
-def first_menu(bot, update):
-  bot.callback_query.message.edit_text(first_menu_message(),
-                          reply_markup=first_menu_keyboard())
+class LoginMenu(Menu):
+    def display(self, bot, update):
+        bot.callback_query.message.reply_text('Please enter your login')
+        BotState.is_waiting_login = True
 
 
-def second_menu(bot, update):
-  bot.callback_query.message.edit_text(second_menu_message(),
-                          reply_markup=second_menu_keyboard())
+class Bot:
+    def __init__(self, token):
+        self.updater = Updater(token, use_context=True)
+
+        self.c3 = Menu('children3', [Menu('children4', [])])
+
+        login = LoginMenu('Authentication', [])
+
+        c11 = Menu('children11', [login])
+        c12 = Menu('children12', [])
+        self.c3.parent = c11
+
+        c1 = Menu('children1', [c11, c12])
+        c2 = Menu('children2', [])
+        self.root_menu = Menu('root', [c1, c2])
+
+        self.updater.dispatcher.add_handler(CommandHandler('start', self.start_menu))
+        self.root_menu.register(self.updater.dispatcher)
+
+        self.updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, self.handle_text))
+
+    def start_menu(self, bot, update):
+        bot.message.reply_text(self.root_menu.display_name, reply_markup=self.root_menu.menu_keyboard())
+
+    def run(self):
+        self.updater.start_polling()
+
+    def handle_text(self, update: Update, context: CallbackContext):
+        if BotState.is_waiting_login:
+            update.message.reply_text('Please, enter password')
+            BotState.is_waiting_login = False
+            BotState.is_waiting_password = True
+        elif BotState.is_waiting_password:
+            update.message.reply_text('Please, enter cvv')
+            BotState.is_waiting_password = False
+            BotState.is_waiting_cvv = True
+        elif BotState.is_waiting_cvv:
+            BotState.is_waiting_cvv = False
+            update.message.reply_text(self.c3.display_name, reply_markup=self.c3.menu_keyboard())
 
 
-def first_submenu(bot, update):
-  pass
-
-def second_submenu(bot, update):
-  pass
-
-
-def error(update, context):
-    print(f'Update {update} caused error {context.error}')
-
-
-############################ Keyboards #########################################
-def main_menu_keyboard():
-  keyboard = [[InlineKeyboardButton('Menu 1', callback_data='m1')],
-              [InlineKeyboardButton('Menu 2', callback_data='m2')],
-              [InlineKeyboardButton('Menu 3', callback_data='m3')]]
-  return InlineKeyboardMarkup(keyboard)
-
-
-def first_menu_keyboard():
-  keyboard = [[InlineKeyboardButton('Submenu 1-1', callback_data='m1_1')],
-              [InlineKeyboardButton('Submenu 1-2', callback_data='m1_2')],
-              [InlineKeyboardButton('Main menu', callback_data='main')]]
-  return InlineKeyboardMarkup(keyboard)
-
-
-def second_menu_keyboard():
-  keyboard = [[InlineKeyboardButton('Submenu 2-1', callback_data='m2_1')],
-              [InlineKeyboardButton('Submenu 2-2', callback_data='m2_2')],
-              [InlineKeyboardButton('Main menu', callback_data='main')]]
-  return InlineKeyboardMarkup(keyboard)
-
-
-############################# Messages #########################################
-def main_menu_message():
-  return 'Choose the option in main menu:'
-
-
-def first_menu_message():
-  return 'Choose the submenu in first menu:'
-
-
-def second_menu_message():
-  return 'Choose the submenu in second menu:'
-
-
-############################# Handlers #########################################
-updater = Updater('1579751582:AAEcot5v5NLyxXB1uFYQiBCyvBAsKOzGGsU', use_context=True)
-updater.dispatcher.add_handler(CommandHandler('start', start))
-updater.dispatcher.add_handler(CallbackQueryHandler(main_menu, pattern='main'))
-updater.dispatcher.add_handler(CallbackQueryHandler(first_menu, pattern='m1'))
-updater.dispatcher.add_handler(CallbackQueryHandler(second_menu, pattern='m2'))
-updater.dispatcher.add_handler(CallbackQueryHandler(first_submenu, pattern='m1_1'))
-updater.dispatcher.add_handler(CallbackQueryHandler(second_submenu, pattern='m2_1'))
-updater.dispatcher.add_error_handler(error)
-
-updater.start_polling()
-################################################################################
+if __name__ == '__main__':
+    b = Bot('1579751582:AAEcot5v5NLyxXB1uFYQiBCyvBAsKOzGGsU')
+    b.run()
