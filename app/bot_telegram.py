@@ -17,6 +17,16 @@ class BotState:
     is_waiting_password = False
     is_waiting_cvv = False
 
+    @classmethod
+    def change_state(cls, display_name):
+        if display_name in cls.state_list:
+            while cls.state_list[-1] != display_name:
+                cls.state_list.pop()
+        else:
+            cls.state_list.append(display_name)
+
+        logging.info(cls.state_list)
+
 
 class Menu:
     def __init__(self, display_name: str, children: list):
@@ -36,12 +46,7 @@ class Menu:
         logging.debug(f'self.display_name {self.display_name}')
         logging.debug(f'self.keyboard() {self._keyboard()}')
 
-        if self.display_name in BotState.state_list:
-            BotState.state_list.pop()
-        else:
-            BotState.state_list.append(self.display_name)
-
-        logging.info(BotState.state_list)
+        BotState.change_state(self.display_name)
 
         bot.callback_query.message.edit_text(self.display_name, reply_markup=self._keyboard())
 
@@ -59,6 +64,7 @@ class Menu:
 
 class LoginMenu(Menu):
     def display(self, bot, update):
+        BotState.change_state(self.display_name)
         BotState.last_message = bot.callback_query.message.reply_text('Please enter your login')
         bot.callback_query.message.delete()
         BotState.is_waiting_login = True
@@ -80,29 +86,26 @@ class Bot:
         self.create_menu()
 
     def create_menu(self):
-        menus = {}
+        chain_menus = []
         for chain in self.chains:
-            menus[chain] = {}
+            m_filtered_slots = Menu('Filtered slots', [])
+            m_all_available_slots = Menu('All available slots', [])
 
-            menus[chain]['m_filtered_slots'] = Menu('Filtered slots', [])
-            menus[chain]['m_all_available_slots'] = Menu('All available slots', [])
+            m_filter_slots = Menu('Filter slots', [m_filtered_slots])
+            m_show_all_available_slots = Menu('Show all available slots', [m_all_available_slots])
 
-            menus[chain]['m_filter_slots'] = Menu('Filter slots', [menus[chain]['m_filtered_slots']])
-            menus[chain]['m_show_all_available_slots'] = Menu('All available slots',
-                                                              [menus[chain]['m_all_available_slots']])
+            self.m_filter[chain] = Menu('Filters', [m_filter_slots, m_show_all_available_slots])
 
-            self.m_filter[chain] = Menu('Filters', [menus[chain]['m_filter_slots'],
-                                                    menus[chain]['m_show_all_available_slots']])
+            m_book_slot = LoginMenu('Book slot', [])
+            m_book_slot_and_checkout = LoginMenu('Book slot and checkout', [])
 
-            menus[chain]['m_book_slot'] = LoginMenu('Book slot', [])
-            menus[chain]['m_book_slot_and_checkout'] = LoginMenu('Book slot and checkout', [])
-
-            menus[chain]['m_chain'] = Menu(chain.capitalize(), [menus[chain]['m_book_slot'],
-                                                                menus[chain]['m_book_slot_and_checkout']])
-            self.m_filter[chain].parent = menus[chain]['m_chain']
+            m_chain = Menu(chain.capitalize(), [m_book_slot, m_book_slot_and_checkout])
+            self.m_filter[chain].parent = m_chain
             self.m_filter[chain].register(self.updater.dispatcher)
 
-        self.m_root = Menu('Main', [menu['m_chain'] for menu in menus.values()])
+            chain_menus.append(m_chain)
+
+        self.m_root = Menu('Main', chain_menus)
         self.updater.dispatcher.add_handler(CommandHandler('start', self.m_root.create))
         self.m_root.register(self.updater.dispatcher)
         self.updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, self.handle_text))
@@ -126,6 +129,7 @@ class Bot:
         elif BotState.is_waiting_cvv:
             BotState.is_waiting_cvv = False
             self.m_filter[BotState.state_list[0].lower()].create(None, None, update.message)
+            BotState.change_state('Filters')
 
         # user's input
         update.message.delete()
