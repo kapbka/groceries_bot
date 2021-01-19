@@ -15,41 +15,62 @@ CHAIN_LIST = ['waitrose', 'tesco', 'sainsbury', 'coop', 'asda', 'lidl']
 
 
 class BotState:
-    chain_name = None
-    last_message = None
-    state_list = []
+    def __init__(self):
+        self.chain_name = None
+        self.last_message = None
+        self.state_list = []
 
-    login = None
-    password = None
-    cvv = None
+        self.login = None
+        self.password = None
+        self.cvv = None
 
-    is_waiting_login = False
-    is_waiting_password = False
-    is_waiting_cvv = False
+        self.is_waiting_login = False
+        self.is_waiting_password = False
+        self.is_waiting_cvv = False
 
-    @classmethod
-    def get_creds(cls, chat_id):
+    def get_creds(self, chat_id: int):
         with open('creds.json') as json_file:
             data = json.load(json_file)
-        return data.get(cls.chain_name, {}).get(str(chat_id), None)
+        return data.get(str(chat_id), {}).get(self.chain_name, None)
 
-    @staticmethod
-    def update_creds(data):
+    def update_creds(self, chat_id: int, mode: int = 0):
+        """
+        User credentials update
+        :param chat_id: chat id
+        :param mode: 0 - login update, 1 - payment updatem 2 - login and payment details update
+        :return: writes to file and returns None
+        """
+        with open('creds.json') as json_file:
+            data = json.load(json_file)
+
+        if str(chat_id) not in data.keys():
+            data[str(chat_id)] = {}
+        if self.chain_name not in data[str(chat_id)].keys():
+            data[str(chat_id)][self.chain_name] = {}
+
+        if mode in (0, 2):
+            data[str(chat_id)][self.chain_name]['login'] = self.login
+            data[str(chat_id)][self.chain_name]['password'] = self.password
+        if mode in (1,2):
+            data[str(chat_id)][self.chain_name]['cvv'] = self.cvv
+
         with open('creds.json', 'w') as outfile:
             json.dump(data, outfile)
 
-    @classmethod
-    def change_state(cls, display_name):
-        if display_name in cls.state_list:
-            while cls.state_list[-1] != display_name:
-                cls.state_list.pop()
+    def change_state(self, display_name):
+        if display_name in self.state_list:
+            while self.state_list[-1] != display_name:
+                self.state_list.pop()
         else:
-            cls.state_list.append(display_name)
+            self.state_list.append(display_name)
 
-        if len(cls.state_list) == 2:
-            cls.chain_name = cls.state_list[1].lower()
+        if len(self.state_list) == 2:
+            self.chain_name = self.state_list[1].lower()
+            self.login = None
+            self.password = None
+            self.cvv = None
 
-        logging.info(cls.state_list)
+        logging.info(self.state_list)
 
 
 bot_state = defaultdict(BotState)
@@ -97,10 +118,9 @@ class LoginMenu(Menu):
         self.next_menu = next_menu
 
     def display(self, bot, update):
-        bs = bot_state[bot.callback_query.message.chat.id]
-
-        creds = bs.get_creds(bot.callback_query.message.chat.id)
-
+        chat_id = bot.callback_query.message.chat.id
+        bs = bot_state[chat_id]
+        creds = bs.get_creds(chat_id)
         bs.change_state(self.display_name)
 
         if not creds or bs.state_list[-1] == 'Login':
@@ -117,10 +137,9 @@ class CvvMenu(Menu):
         self.next_menu = next_menu
 
     def display(self, bot, update):
-        bs = bot_state[bot.callback_query.message.chat.id]
-
-        creds = bs.get_creds(bot.callback_query.message.chat.id)
-
+        chat_id = bot.callback_query.message.chat.id
+        bs = bot_state[chat_id]
+        creds = bs.get_creds(chat_id)
         bs.change_state(self.display_name)
 
         if not creds or bs.state_list[-1] == 'Payment':
@@ -180,18 +199,16 @@ class Bot:
         self.updater.start_polling()
 
     def handle_text(self, update: Update, context: CallbackContext):
-        # if update.message.text.lower() == 'чмок':
-        #     self.updater.bot.send_sticker(update.message.chat.id, 'CAADAgADZgkAAnlc4gmfCor5YbYYRAI')
-
-        bs = bot_state[update.message.chat.id]
-
-        creds = bs.get_creds(update.message.chat.id)
+        chat_id = update.message.chat.id
+        bs = bot_state[chat_id]
+        creds = bs.get_creds(chat_id)
 
         # the previous invitation
         if bs.last_message:
             bs.last_message.delete()
 
         if not creds or bs.state_list[-1] in ('Login', 'Payment'):
+            cred_mode = 0
             if bs.is_waiting_login:
                 bs.login = update.message.text
                 bs.last_message = update.message.reply_text('Please, enter password')
@@ -201,9 +218,14 @@ class Bot:
                 bs.password = update.message.text
                 bs.is_waiting_password = False
                 if bs.state_list[-1] in ('Book slot and checkout', 'Payment'):
+                    if bs.state_list[-1] == 'Payment':
+                        cred_mode = 1
+                    else:
+                        cred_mode = 2
                     bs.last_message = update.message.reply_text('Please, enter cvv')
                     bs.is_waiting_cvv = True
                 else:
+                    cred_mode = 0
                     if bs.state_list[-1] == 'Login':
                         bs.change_state('Settings')
                         self.m_settings[bs.chain_name].create(None, None, update.message)
@@ -211,6 +233,7 @@ class Bot:
                         bs.change_state('Filters')
                         self.m_filter[bs.chain_name].create(None, None, update.message)
             elif bs.is_waiting_cvv:
+                cred_mode = 1
                 bs.cvv = update.message.text
                 bs.is_waiting_cvv = False
                 if bs.state_list[-1] == 'Payment':
@@ -220,6 +243,7 @@ class Bot:
                     bs.change_state('Filters')
                     self.m_filter[bs.chain_name].create(None, None, update.message)
 
+            bs.update_creds(chat_id, cred_mode)
             # user's input
             update.message.delete()
         else:
