@@ -6,12 +6,19 @@ from telegram import Update
 from telegram.ext import CommandHandler, CallbackQueryHandler, MessageHandler, Filters, CallbackContext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from collections import defaultdict
+from enum import IntEnum
 import json
 import logging
 
 
 BOT_TOKEN = '1579751582:AAEcot5v5NLyxXB1uFYQiBCyvBAsKOzGGsU'
 CHAIN_LIST = ['waitrose', 'tesco', 'sainsbury', 'coop', 'asda', 'lidl']
+
+
+class CredMode(IntEnum):
+    login = 0
+    pwd = 1
+    login_pwd = 2
 
 
 class BotState:
@@ -22,11 +29,21 @@ class BotState:
 
         self.login = None
         self.password = None
-        self.cvv = None
+        self._cvv = None
 
         self.is_waiting_login = False
         self.is_waiting_password = False
         self.is_waiting_cvv = False
+
+    @property
+    def cvv(self):
+        return self._cvv
+
+    @cvv.setter
+    def cvv(self, value: int):
+        if value and (not int(value) or len(value) != 3):
+            raise ValueError(f'Invalid cvv {value}, must be 3 digit number!')
+        self._cvv = value
 
     def get_creds(self, chat_id: int):
         with open('creds.json') as json_file:
@@ -37,7 +54,7 @@ class BotState:
         """
         User credentials update
         :param chat_id: chat id
-        :param mode: 0 - login update, 1 - payment updatem 2 - login and payment details update
+        :param mode: CRED_MODE enum
         :return: writes to file and returns None
         """
         with open('creds.json') as json_file:
@@ -48,10 +65,10 @@ class BotState:
         if self.chain_name not in data[str(chat_id)].keys():
             data[str(chat_id)][self.chain_name] = {}
 
-        if mode in (0, 2):
+        if mode in (CredMode.login, CredMode.login_pwd):
             data[str(chat_id)][self.chain_name]['login'] = self.login
             data[str(chat_id)][self.chain_name]['password'] = self.password
-        if mode in (1,2):
+        if mode in (CredMode.pwd, CredMode.login_pwd):
             data[str(chat_id)][self.chain_name]['cvv'] = self.cvv
 
         with open('creds.json', 'w') as outfile:
@@ -64,11 +81,12 @@ class BotState:
         else:
             self.state_list.append(display_name)
 
-        if len(self.state_list) == 2:
-            self.chain_name = self.state_list[1].lower()
+        if len(self.state_list) == 1:
             self.login = None
             self.password = None
             self.cvv = None
+        elif len(self.state_list) == 2:
+            self.chain_name = self.state_list[1].lower()
 
         logging.info(self.state_list)
 
@@ -208,7 +226,7 @@ class Bot:
             bs.last_message.delete()
 
         if not creds or bs.state_list[-1] in ('Login', 'Payment'):
-            cred_mode = 0
+            cred_mode = CredMode.login
             if bs.is_waiting_login:
                 bs.login = update.message.text
                 bs.last_message = update.message.reply_text('Please, enter password')
@@ -219,13 +237,12 @@ class Bot:
                 bs.is_waiting_password = False
                 if bs.state_list[-1] in ('Book slot and checkout', 'Payment'):
                     if bs.state_list[-1] == 'Payment':
-                        cred_mode = 1
+                        cred_mode = CredMode.pwd
                     else:
-                        cred_mode = 2
+                        cred_mode = CredMode.login_pwd
                     bs.last_message = update.message.reply_text('Please, enter cvv')
                     bs.is_waiting_cvv = True
                 else:
-                    cred_mode = 0
                     if bs.state_list[-1] == 'Login':
                         bs.change_state('Settings')
                         self.m_settings[bs.chain_name].create(None, None, update.message)
@@ -233,7 +250,7 @@ class Bot:
                         bs.change_state('Filters')
                         self.m_filter[bs.chain_name].create(None, None, update.message)
             elif bs.is_waiting_cvv:
-                cred_mode = 1
+                cred_mode = CredMode.pwd
                 bs.cvv = update.message.text
                 bs.is_waiting_cvv = False
                 if bs.state_list[-1] == 'Payment':
