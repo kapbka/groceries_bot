@@ -11,23 +11,27 @@ import logging
 
 
 BOT_TOKEN = '1579751582:AAEcot5v5NLyxXB1uFYQiBCyvBAsKOzGGsU'
-CHAIN_LIST = ['waitrose', 'tesco', 'sainsbury']
+CHAIN_LIST = ['waitrose', 'tesco', 'sainsbury', 'coop', 'asda', 'lidl']
 
 
 class BotState:
-    chain = None
+    chain_name = None
     last_message = None
     state_list = []
+
+    login = None
+    password = None
+    cvv = None
 
     is_waiting_login = False
     is_waiting_password = False
     is_waiting_cvv = False
 
-    @staticmethod
-    def get_creds(chat_id):
+    @classmethod
+    def get_creds(cls, chat_id):
         with open('creds.json') as json_file:
             data = json.load(json_file)
-        return data.get(str(chat_id), None)
+        return data.get(cls.chain_name, {}).get(str(chat_id), None)
 
     @staticmethod
     def update_creds(data):
@@ -42,7 +46,10 @@ class BotState:
         else:
             cls.state_list.append(display_name)
 
-        logging.debug(cls.state_list)
+        if len(cls.state_list) == 2:
+            cls.chain_name = cls.state_list[1].lower()
+
+        logging.info(cls.state_list)
 
 
 bot_state = defaultdict(BotState)
@@ -85,9 +92,9 @@ class Menu:
 
 
 class LoginMenu(Menu):
-    def __init__(self, display_name: str, children: list, filter_menu: Menu):
+    def __init__(self, display_name: str, children: list, next_menu: Menu=None):
         super().__init__(display_name, children)
-        self.filter_menu = filter_menu
+        self.next_menu = next_menu
 
     def display(self, bot, update):
         bs = bot_state[bot.callback_query.message.chat.id]
@@ -96,12 +103,32 @@ class LoginMenu(Menu):
 
         bs.change_state(self.display_name)
 
-        if not creds:
+        if not creds or bs.state_list[-1] == 'Login':
             bs.last_message = bot.callback_query.message.reply_text('Please enter your login')
             bot.callback_query.message.delete()
             bs.is_waiting_login = True
         else:
-            self.filter_menu.display(bot, update)
+            self.next_menu.display(bot, update)
+
+
+class CvvMenu(Menu):
+    def __init__(self, display_name: str, children: list, next_menu: Menu=None):
+        super().__init__(display_name, children)
+        self.next_menu = next_menu
+
+    def display(self, bot, update):
+        bs = bot_state[bot.callback_query.message.chat.id]
+
+        creds = bs.get_creds(bot.callback_query.message.chat.id)
+
+        bs.change_state(self.display_name)
+
+        if not creds or bs.state_list[-1] == 'Payment':
+            bs.last_message = bot.callback_query.message.reply_text('Please enter your cvv')
+            bot.callback_query.message.delete()
+            bs.is_waiting_cvv = True
+        else:
+            self.next_menu.display(bot, update)
 
 
 class Bot:
@@ -114,6 +141,7 @@ class Bot:
 
         self.m_root = None
         self.m_filter = {}
+        self.m_settings = {}
 
         self.last_message = None
 
@@ -133,7 +161,11 @@ class Bot:
             m_book_slot = LoginMenu('Book slot', [], self.m_filter[chain])
             m_book_slot_and_checkout = LoginMenu('Book slot and checkout', [], self.m_filter[chain])
 
-            m_chain = Menu(chain.capitalize(), [m_book_slot, m_book_slot_and_checkout])
+            m_login = LoginMenu('Login', [])
+            m_payment = CvvMenu('Payment', [])
+            self.m_settings[chain] = Menu('Settings', [m_login, m_payment])
+
+            m_chain = Menu(chain.capitalize(), [m_book_slot, m_book_slot_and_checkout, self.m_settings[chain]])
             self.m_filter[chain].parent = m_chain
             self.m_filter[chain].register(self.updater.dispatcher)
 
@@ -155,28 +187,43 @@ class Bot:
 
         creds = bs.get_creds(update.message.chat.id)
 
-        # an invitation
+        # the previous invitation
         if bs.last_message:
             bs.last_message.delete()
 
-        if not creds:
+        if not creds or bs.state_list[-1] in ('Login', 'Payment'):
             if bs.is_waiting_login:
+                bs.login = update.message.text
                 bs.last_message = update.message.reply_text('Please, enter password')
                 bs.is_waiting_login = False
                 bs.is_waiting_password = True
             elif bs.is_waiting_password:
-                bs.last_message = update.message.reply_text('Please, enter cvv')
+                bs.password = update.message.text
                 bs.is_waiting_password = False
-                bs.is_waiting_cvv = True
+                if bs.state_list[-1] in ('Book slot and checkout', 'Payment'):
+                    bs.last_message = update.message.reply_text('Please, enter cvv')
+                    bs.is_waiting_cvv = True
+                else:
+                    if bs.state_list[-1] == 'Login':
+                        bs.change_state('Settings')
+                        self.m_settings[bs.chain_name].create(None, None, update.message)
+                    else:
+                        bs.change_state('Filters')
+                        self.m_filter[bs.chain_name].create(None, None, update.message)
             elif bs.is_waiting_cvv:
+                bs.cvv = update.message.text
                 bs.is_waiting_cvv = False
-                self.m_filter[bs.state_list[1].lower()].create(None, None, update.message)
-                bs.change_state('Filters')
+                if bs.state_list[-1] == 'Payment':
+                    bs.change_state('Settings')
+                    self.m_settings[bs.chain_name].create(None, None, update.message)
+                else:
+                    bs.change_state('Filters')
+                    self.m_filter[bs.chain_name].create(None, None, update.message)
 
             # user's input
             update.message.delete()
         else:
-            self.m_filter[bs.state_list[1].lower()].create(None, None, update.message)
+            self.m_filter[bs.chain_name].create(None, None, update.message)
             bs.change_state('Filters')
 
 

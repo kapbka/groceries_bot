@@ -1,7 +1,19 @@
 {
-  "365436333": {
-    "login": "test@gmail.com",
-    "password": "test",
-    "cvv": 123
+  "waitrose": {
+    "365436333": {
+      "login": "test@gmail.com",
+      "password": "test",
+      "cvv": 123
+    }
+  },
+  "tesco": {
+  },
+  "sainsbury": {
+  },
+  "coop": {
+  },
+  "asda": {
+  },
+  "lidl": {
   }
 }
