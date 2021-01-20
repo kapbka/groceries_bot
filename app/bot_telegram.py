@@ -2,7 +2,7 @@
 
 import uuid
 from telegram.ext import Updater
-from telegram import Update
+from telegram import Update, Bot, ForceReply
 from telegram.ext import CommandHandler, CallbackQueryHandler, MessageHandler, Filters, CallbackContext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from collections import defaultdict
@@ -31,17 +31,13 @@ class BotState:
         self.password = None
         self._cvv = None
 
-        self.is_waiting_login = False
-        self.is_waiting_password = False
-        self.is_waiting_cvv = False
-
     @property
     def cvv(self):
         return self._cvv
 
     @cvv.setter
     def cvv(self, value: int):
-        if value and (not int(value) or len(value) != 3):
+        if value and (not int(value) or len(str(value)) != 3):
             raise ValueError(f'Invalid cvv {value}, must be 3 digit number!')
         self._cvv = value
 
@@ -50,7 +46,7 @@ class BotState:
             data = json.load(json_file)
         return data.get(str(chat_id), {}).get(self.chain_name, None)
 
-    def update_creds(self, chat_id: int, mode: int = 0):
+    def update_creds(self, chat_id: int, mode: int = CredMode.login):
         """
         User credentials update
         :param chat_id: chat id
@@ -74,7 +70,7 @@ class BotState:
         with open('creds.json', 'w') as outfile:
             json.dump(data, outfile)
 
-    def change_state(self, display_name):
+    def change_state(self, display_name: str):
         if display_name in self.state_list:
             while self.state_list[-1] != display_name:
                 self.state_list.pop()
@@ -108,7 +104,7 @@ class Menu:
             c.parent = self
             c.register(dispatcher)
 
-    def display(self, update, callback_context):
+    def display(self, update: Update, callback_context: CallbackContext):
         logging.debug(f'self.display_name {self.display_name}')
         logging.debug(f'self.keyboard() {self._keyboard()}')
 
@@ -116,9 +112,9 @@ class Menu:
         bs.change_state(self.display_name)
         update.callback_query.message.edit_text(self.display_name, reply_markup=self._keyboard())
 
-    def create(self, bot, update, message=None):
+    def create(self, update: Update, callback_context: CallbackContext, message = None):
         if not message:
-            message = bot.message
+            message = update.message
         bs = bot_state[message.chat.id]
         bs.change_state(self.display_name)
         message.reply_text(self.display_name, reply_markup=self._keyboard())
@@ -145,51 +141,40 @@ class Menu:
         return InlineKeyboardMarkup(res)
 
 
-class LoginMenu(Menu):
-    def __init__(self, display_name: str, children: list, next_menu: Menu=None):
+class ReplyMenu(Menu):
+    def __init__(self, bot: Bot, display_name: str, children: list, next_menu: Menu=None):
         super().__init__(display_name, children)
         self.next_menu = next_menu
+        self.bot = bot
 
-    def display(self, bot, update):
-        chat_id = bot.callback_query.message.chat.id
+    def display(self, update: Update, callback_context: CallbackContext):
+        chat_id = update.callback_query.message.chat.id
         bs = bot_state[chat_id]
         creds = bs.get_creds(chat_id)
         bs.change_state(self.display_name)
 
-        if not creds or bs.state_list[-1] == 'Login':
-            bs.last_message = bot.callback_query.message.reply_text('Please enter your login')
-            bot.callback_query.message.delete()
-            bs.is_waiting_login = True
+        if not creds or self.display_name in ('Login', 'Payment'):
+            if self.display_name == 'Login':
+                msg = 'Please enter your login'
+            elif self.display_name == 'Payment':
+                msg = 'Please enter cvv for your card'
+            else:
+                raise ValueError('Unknown action!')
+            #bs.last_message = update.callback_query.message.reply_text('Please enter your login')
+            bs.last_message = self.bot.send_message(chat_id, msg, reply_markup=ForceReply())
+            update.callback_query.message.delete()
         else:
-            self.next_menu.display(bot, update)
+            self.next_menu.display(update, callback_context)
 
 
-class CvvMenu(Menu):
-    def __init__(self, display_name: str, children: list, next_menu: Menu=None):
-        super().__init__(display_name, children)
-        self.next_menu = next_menu
-
-    def display(self, bot, update):
-        chat_id = bot.callback_query.message.chat.id
-        bs = bot_state[chat_id]
-        creds = bs.get_creds(chat_id)
-        bs.change_state(self.display_name)
-
-        if not creds or bs.state_list[-1] == 'Payment':
-            bs.last_message = bot.callback_query.message.reply_text('Please enter your cvv')
-            bot.callback_query.message.delete()
-            bs.is_waiting_cvv = True
-        else:
-            self.next_menu.display(bot, update)
-
-
-class Bot:
+class GroceriesBot:
     def __init__(self, token: str, chains: list):
         if not chains:
             ValueError('Empty chain list!')
 
         self.chains = chains
-        self.updater = Updater(token, use_context=True)
+        self.bot = Bot(token)
+        self.updater = Updater(bot=self.bot, use_context=True)
 
         self.m_root = None
         self.m_filter = {}
@@ -210,11 +195,11 @@ class Bot:
 
             self.m_filter[chain] = Menu('Filters', [m_filter_slots, m_show_all_slots])
 
-            m_book_slot_and_checkout = LoginMenu('Book slot and checkout', [], self.m_filter[chain])
-            m_book_slot = LoginMenu('Book slot', [], self.m_filter[chain])
+            m_book_slot_and_checkout = ReplyMenu(self.bot, 'Book slot and checkout', [], self.m_filter[chain])
+            m_book_slot = ReplyMenu(self.bot, 'Book slot', [], self.m_filter[chain])
 
-            m_login = LoginMenu('Login', [])
-            m_payment = CvvMenu('Payment', [])
+            m_login = ReplyMenu(self.bot, 'Login', [])
+            m_payment = ReplyMenu(self.bot, 'Payment', [])
             self.m_settings[chain] = Menu('Settings', [m_login, m_payment])
 
             m_chain = Menu(chain.capitalize(), [m_book_slot_and_checkout, m_book_slot, self.m_settings[chain]])
@@ -242,21 +227,20 @@ class Bot:
 
         if not creds or bs.state_list[-1] in ('Login', 'Payment'):
             cred_mode = CredMode.login
-            if bs.is_waiting_login:
+            if update.message.reply_to_message.text == 'Please enter your login': # bs.is_waiting_login:
                 bs.login = update.message.text
-                bs.last_message = update.message.reply_text('Please, enter password')
-                bs.is_waiting_login = False
-                bs.is_waiting_password = True
-            elif bs.is_waiting_password:
+                #bs.last_message = update.message.reply_text('Please enter your password')
+                bs.last_message = self.bot.send_message(chat_id, 'Please enter your password', reply_markup=ForceReply())
+            elif update.message.reply_to_message.text == 'Please enter your password':
                 bs.password = update.message.text
-                bs.is_waiting_password = False
                 if bs.state_list[-1] in ('Book slot and checkout', 'Payment'):
                     if bs.state_list[-1] == 'Payment':
                         cred_mode = CredMode.pwd
                     else:
                         cred_mode = CredMode.login_pwd
-                    bs.last_message = update.message.reply_text('Please, enter cvv')
-                    bs.is_waiting_cvv = True
+                    #bs.last_message = update.message.reply_text('Please enter your cvv')
+                    bs.last_message = self.bot.send_message(chat_id, 'Please enter cvv for your card',
+                                                            reply_markup=ForceReply())
                 else:
                     if bs.state_list[-1] == 'Login':
                         bs.change_state('Settings')
@@ -264,10 +248,9 @@ class Bot:
                     else:
                         bs.change_state('Filters')
                         self.m_filter[bs.chain_name].create(None, None, update.message)
-            elif bs.is_waiting_cvv:
+            elif update.message.reply_to_message.text == 'Please enter cvv for your card':
                 cred_mode = CredMode.pwd
                 bs.cvv = update.message.text
-                bs.is_waiting_cvv = False
                 if bs.state_list[-1] == 'Payment':
                     bs.change_state('Settings')
                     self.m_settings[bs.chain_name].create(None, None, update.message)
@@ -285,5 +268,5 @@ class Bot:
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
-    b = Bot(BOT_TOKEN, CHAIN_LIST)
+    b = GroceriesBot(BOT_TOKEN, CHAIN_LIST)
     b.run()
