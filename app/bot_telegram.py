@@ -12,7 +12,7 @@ import logging
 
 
 BOT_TOKEN = '1579751582:AAEcot5v5NLyxXB1uFYQiBCyvBAsKOzGGsU'
-CHAIN_LIST = ['waitrose', 'tesco', 'sainsbury', 'coop', 'asda', 'lidl']
+CHAIN_LIST = ['waitrose', 'tesco', 'coop', 'asda', 'lidl', 'sainsbury']
 
 
 class CredMode(IntEnum):
@@ -124,9 +124,24 @@ class Menu:
         message.reply_text(self.display_name, reply_markup=self._keyboard())
 
     def _keyboard(self):
-        res = [[InlineKeyboardButton(c.display_name, callback_data=c.name)] for c in self.children]
+        disp_len = 0
+        res = []
+        sub_res = []
+        for c in self.children:
+            disp_len += len(c.display_name)
+            btn = InlineKeyboardButton(c.display_name, callback_data=c.name)
+            if disp_len > 30:
+                res.append(sub_res)
+                disp_len = len(c.display_name)
+                sub_res = [btn]
+            else:
+                sub_res.append(btn)
+
+        res.append(sub_res)
+
         if self.parent:
             res.append([InlineKeyboardButton('Back to ' + self.parent.display_name, callback_data=self.parent.name)])
+
         return InlineKeyboardMarkup(res)
 
 
@@ -191,18 +206,18 @@ class Bot:
             m_all_available_slots = Menu('All available slots', [])
 
             m_filter_slots = Menu('Filter slots', [m_filtered_slots])
-            m_show_all_available_slots = Menu('Show all available slots', [m_all_available_slots])
+            m_show_all_slots = Menu('Show all slots', [m_all_available_slots])
 
-            self.m_filter[chain] = Menu('Filters', [m_filter_slots, m_show_all_available_slots])
+            self.m_filter[chain] = Menu('Filters', [m_filter_slots, m_show_all_slots])
 
-            m_book_slot = LoginMenu('Book slot', [], self.m_filter[chain])
             m_book_slot_and_checkout = LoginMenu('Book slot and checkout', [], self.m_filter[chain])
+            m_book_slot = LoginMenu('Book slot', [], self.m_filter[chain])
 
             m_login = LoginMenu('Login', [])
             m_payment = CvvMenu('Payment', [])
             self.m_settings[chain] = Menu('Settings', [m_login, m_payment])
 
-            m_chain = Menu(chain.capitalize(), [m_book_slot, m_book_slot_and_checkout, self.m_settings[chain]])
+            m_chain = Menu(chain.capitalize(), [m_book_slot_and_checkout, m_book_slot, self.m_settings[chain]])
             self.m_filter[chain].parent = m_chain
             self.m_filter[chain].register(self.updater.dispatcher)
 
