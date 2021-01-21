@@ -1,1 +1,11 @@
-{"365436333": {"waitrose": {"login": "west", "password": "east", "cvv": "888"}}}
+{
+  "365436333": {
+    "null": {
+      "login": "a",
+      "password": "b"
+    },
+    "waitrose": {
+      "cvv": "222"
+    }
+  }
+}
