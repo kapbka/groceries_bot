@@ -11,7 +11,11 @@ import json
 import logging
 
 BOT_TOKEN = '1579751582:AAEcot5v5NLyxXB1uFYQiBCyvBAsKOzGGsU'
-CHAIN_LIST = ['waitrose', 'tesco', 'coop', 'asda', 'lidl', 'sainsbury']
+CHAIN_LIST = ['waitrose'] # , 'tesco', 'coop', 'asda', 'lidl', 'sainsbury'
+
+
+def get_message(update: Update):
+    return update.message or update.callback_query.message
 
 
 class CredMode(IntEnum):
@@ -97,24 +101,24 @@ class Menu:
         self.parent = None
         self.children = children
 
-    def register(self, dispatcher):
+    def register(self, bot):
         logging.debug(f'self.display_name {self.display_name}, {self.name}')
-        dispatcher.add_handler(CallbackQueryHandler(self.display, pattern=self.name))
+        wrapper = lambda u, c: self.display(get_message(u))
+        bot.updater.dispatcher.add_handler(CallbackQueryHandler(wrapper, pattern=self.name))
+
         for c in self.children:
             c.parent = self
-            c.register(dispatcher)
+            c.register(bot)
 
-    def display(self, update: Update, callback_context: CallbackContext):
+    def display(self, message):
         logging.debug(f'self.display_name {self.display_name}')
         logging.debug(f'self.keyboard() {self._keyboard()}')
 
-        bs = bot_state[update.callback_query.message.chat.id]
+        bs = bot_state[message.chat.id]
         bs.change_state(self.display_name)
-        update.callback_query.message.edit_text(self.display_name, reply_markup=self._keyboard())
+        message.edit_text(self.display_name, reply_markup=self._keyboard())
 
-    def create(self, update: Update, callback_context: CallbackContext, message=None):
-        if not message:
-            message = update.message
+    def create(self, message):
         bs = bot_state[message.chat.id]
         bs.change_state(self.display_name)
         message.reply_text(self.display_name, reply_markup=self._keyboard())
@@ -141,35 +145,95 @@ class Menu:
         return InlineKeyboardMarkup(res)
 
 
-class ReplyMenu(Menu):
-    def __init__(self, bot: Bot, display_name: str, children: list, next_menu: Menu = None):
-        super().__init__(display_name, children)
+class TextMenu(Menu):
+    def __init__(self, bot, display_name: str, text_message: str, next_menu: Menu = None):
+        super().__init__(display_name, [])
+        self.text_message = text_message
         self.next_menu = next_menu
+        if next_menu:
+            next_menu.parent = self
         self.bot = bot
 
-    def display(self, update: Update, callback_context: CallbackContext):
-        chat_id = update.callback_query.message.chat.id
+    def register(self, bot):
+        logging.debug(f'TextMenu register {self.display_name}, {self.text_message}, {self.name}')
+
+        if self.text_message not in bot.reply_menus:
+            bot.reply_menus[self.text_message] = self.handle_response
+            wrapper = lambda u, c: self.display(get_message(u))
+            bot.updater.dispatcher.add_handler(CallbackQueryHandler(wrapper, pattern=self.name))
+            if self.next_menu:
+                self.next_menu.register(bot)
+
+    def handle_response(self, message, bs: BotState):
+        pass
+
+
+class LoginMenu(TextMenu):
+    def display(self, message):
+        chat_id = message.chat.id
         bs = bot_state[chat_id]
         creds = bs.get_creds(chat_id)
         is_login_pwd = creds.get('login', None) and creds.get('password', None)
-        is_cvv = creds.get('cvv', None)
         bs.change_state(self.display_name)
 
-        if (bs.state_list[-1] == 'Book slot' and not is_login_pwd or
-                bs.state_list[-1] == 'Book slot and checkout' and not is_cvv or
-                bs.state_list[-1] in ('Login', 'Payment')):
-            if (self.display_name in ('Login', 'Book slot') or
-                    self.display_name == 'Book slot and checkout' and not is_login_pwd):
-                msg = 'Please enter your login'
-            elif self.display_name == 'Payment' or self.display_name == 'Book slot and checkout' and not is_cvv:
-                msg = 'Please enter cvv for your card'
-            else:
-                raise ValueError('Unknown action!')
-            # bs.last_message = update.callback_query.message.reply_text('Please enter your login')
-            bs.last_message = self.bot.send_message(chat_id, msg, reply_markup=ForceReply())
-            update.callback_query.message.delete()
+        if not is_login_pwd or self.display_name == 'Login':
+            bs.last_message = self.bot.bot.send_message(chat_id, self.text_message, reply_markup=ForceReply())
+            message.delete()
         else:
-            self.next_menu.display(update, callback_context)
+            self.next_menu.display(message)
+
+    def handle_response(self, message, bs: BotState):
+        bs.login = message.text
+        bs.update_creds(message.chat.id, CredMode.login)
+        self.next_menu.display(message)
+
+
+class PasswordMenu(TextMenu):
+    def display(self, message):
+        chat_id = message.chat.id
+        bs = bot_state[chat_id]
+        creds = bs.get_creds(chat_id)
+        is_login_pwd = creds.get('login', None) and creds.get('password', None)
+        bs.change_state(self.display_name)
+
+        if not is_login_pwd or self.parent.display_name == 'Login':
+            bs.last_message = self.bot.bot.send_message(chat_id, self.text_message, reply_markup=ForceReply())
+        else:
+            self.next_menu.display(message)
+
+    def handle_response(self, message, bs: BotState):
+        bs.password = message.text
+        bs.update_creds(message.chat.id, CredMode.pwd)
+
+        if type(self.next_menu) == Menu:
+            self.next_menu.create(message)
+        else:
+            self.next_menu.display(message)
+
+
+class CvvMenu(TextMenu):
+    def display(self, message):
+        chat_id = message.chat.id
+        bs = bot_state[chat_id]
+        creds = bs.get_creds(chat_id)
+        is_cvv = creds.get('cvv')
+        bs.change_state(self.display_name)
+
+        if not is_cvv or self.display_name == 'Payment':
+            bs.last_message = self.bot.bot.send_message(chat_id, self.text_message, reply_markup=ForceReply())
+            if type(self.parent) == Menu:
+                message.delete()
+        else:
+            self.next_menu.display(message)
+
+    def handle_response(self, message, bs: BotState):
+        bs.cvv = message.text
+        bs.update_creds(message.chat.id, CredMode.cvv)
+
+        if type(self.next_menu) == Menu:
+            self.next_menu.create(message)
+        else:
+            self.next_menu.display(message)
 
 
 class GroceriesBot:
@@ -178,8 +242,9 @@ class GroceriesBot:
             ValueError('Empty chain list!')
 
         self.chains = chains
-        self.bot = Bot(token)
-        self.updater = Updater(bot=self.bot, use_context=True)
+        self.updater = Updater(token, use_context=True)
+        self.bot = self.updater.bot
+        self.reply_menus = {}
 
         self.m_root = None
         self.m_filter = {}
@@ -200,80 +265,45 @@ class GroceriesBot:
 
             self.m_filter[chain] = Menu('Filters', [m_filter_slots, m_show_all_slots])
 
-            m_book_slot_and_checkout = ReplyMenu(self.bot, 'Book slot and checkout', [], self.m_filter[chain])
-            m_book_slot = ReplyMenu(self.bot, 'Book slot', [], self.m_filter[chain])
+            m_book_slot_and_checkout = LoginMenu(self, 'Book slot and checkout', 'Checkout: Please enter your login',
+                                                 PasswordMenu(self, 'Password checkout', 'Checkout: Please enter your password',
+                                                              CvvMenu(self, 'Cvv checkout', 'Checkout: Please enter your cvv', self.m_filter[chain])))
+            m_book_slot = LoginMenu(self, 'Book slot', 'Booking: Please enter your login',
+                                    PasswordMenu(self, 'Password after booking', 'Booking: Please enter your password', self.m_filter[chain]))
 
-            m_login = ReplyMenu(self.bot, 'Login', [])
-            m_payment = ReplyMenu(self.bot, 'Payment', [])
-            self.m_settings[chain] = Menu('Settings', [m_login, m_payment])
+            m_settings_password = PasswordMenu(self, 'Password', 'Settings: Please enter your password', None)
+            m_settings_login = LoginMenu(self, 'Login', 'Settings: Please enter your login', m_settings_password)
+            m_settings_payment = CvvMenu(self, 'Payment', 'Settings: Please enter your cvv', None)
+            self.m_settings[chain] = Menu('Settings', [m_settings_login, m_settings_payment])
+            # update next menu once password or cvv entered
+            m_settings_password.next_menu = self.m_settings[chain]
+            m_settings_payment.next_menu = self.m_settings[chain]
 
             m_chain = Menu(chain.capitalize(), [m_book_slot_and_checkout, m_book_slot, self.m_settings[chain]])
             self.m_filter[chain].parent = m_chain
-            self.m_filter[chain].register(self.updater.dispatcher)
 
             chain_menus.append(m_chain)
 
         self.m_root = Menu('Main', chain_menus)
-        self.updater.dispatcher.add_handler(CommandHandler('start', self.m_root.create))
-        self.m_root.register(self.updater.dispatcher)
+        self.updater.dispatcher.add_handler(CommandHandler('start', lambda u, c: self.m_root.create(get_message(u))))
+        self.m_root.register(self)
         self.updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, self.handle_text))
 
     def run(self):
         self.updater.start_polling()
 
     def handle_text(self, update: Update, context: CallbackContext):
-        chat_id = update.message.chat.id
-        bs = bot_state[chat_id]
-        creds = bs.get_creds(chat_id)
-        is_login_pwd = creds.get('login', None) and creds.get('password', None)
-        is_cvv = creds.get('cvv', None)
+        message = get_message(update)
+        bs = bot_state[message.chat.id]
 
         # the previous invitation
         if bs.last_message:
             bs.last_message.delete()
 
-        if (bs.state_list[-1] == 'Book slot' and not is_login_pwd or
-                bs.state_list[-1] == 'Book slot and checkout' and not is_cvv or
-                bs.state_list[-1] in ('Login', 'Payment')):
-            cred_mode = None
-            if update.message.reply_to_message.text == 'Please enter your login':  # bs.is_waiting_login:
-                bs.login = update.message.text
-                cred_mode = CredMode.login
-                # bs.last_message = update.message.reply_text('Please enter your password')
-                bs.last_message = self.bot.send_message(chat_id, 'Please enter your password',
-                                                        reply_markup=ForceReply())
-            elif update.message.reply_to_message.text == 'Please enter your password':
-                bs.password = update.message.text
-                cred_mode = CredMode.pwd
-                if bs.state_list[-1] == 'Book slot and checkout':
-                    # bs.last_message = update.message.reply_text('Please enter your cvv')
-                    bs.last_message = self.bot.send_message(chat_id, 'Please enter cvv for your card',
-                                                            reply_markup=ForceReply())
-                else:
-                    if bs.state_list[-1] == 'Login':
-                        bs.change_state('Settings')
-                        self.m_settings[bs.chain_name].create(None, None, update.message)
-                    else:
-                        bs.change_state('Filters')
-                        self.m_filter[bs.chain_name].create(None, None, update.message)
-            elif update.message.reply_to_message.text == 'Please enter cvv for your card':
-                bs.cvv = update.message.text
-                cred_mode = CredMode.cvv
-                if bs.state_list[-1] == 'Payment':
-                    bs.change_state('Settings')
-                    self.m_settings[bs.chain_name].create(None, None, update.message)
-                else:
-                    bs.change_state('Filters')
-                    self.m_filter[bs.chain_name].create(None, None, update.message)
-            else:
-                raise ValueError('Unknown message!')
+        self.reply_menus[message.reply_to_message.text](message, bs)
 
-            bs.update_creds(chat_id, cred_mode)
-            # user's input
-            update.message.delete()
-        else:
-            self.m_filter[bs.chain_name].create(None, None, update.message)
-            bs.change_state('Filters')
+        # user's input
+        message.delete()
 
 
 if __name__ == '__main__':
