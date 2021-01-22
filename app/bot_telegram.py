@@ -17,14 +17,11 @@ def get_message(update: Update):
     return update.message or update.callback_query.message
 
 
-class BotState:
+class Creds:
     def __init__(self, chat_id: int, chain_name: str):
         self.chat_id = chat_id
         self.chain_name = chain_name
         self.data = defaultdict(lambda: defaultdict(lambda: defaultdict(defaultdict)))
-
-        self.last_message = None
-        self.state_list = []
 
         with open('creds.json') as json_file:
             data = json.load(json_file)
@@ -59,24 +56,15 @@ class BotState:
         return self.data[str(self.chat_id)][self.chain_name]['cvv']
 
     @cvv.setter
-    def cvv(self, value: int):
-        if value and (not int(value) or len(str(value)) != 3):
+    def cvv(self, value: str):
+        if value and (not int(value) or len(value) != 3):
             raise ValueError(f'Invalid cvv {value}, must be 3 digit number!')
 
-        self.data[str(self.chat_id)][self.chain_name]['cvv'] = value
+        self.data[str(self.chat_id)][self.chain_name]['cvv'] = int(value)
         self._save_creds()
 
-    def change_state(self, display_name: str):
-        if display_name in self.state_list:
-            while self.state_list[-1] != display_name:
-                self.state_list.pop()
-        else:
-            self.state_list.append(display_name)
 
-        logging.info(self.state_list)
-
-
-bot_state = {}
+creds = {}
 
 
 class Menu:
@@ -98,15 +86,9 @@ class Menu:
 
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}, self.keyboard() {self._keyboard()}')
-
-        bs = bot_state[message.chat.id]
-        bs.change_state(self.display_name)
         message.edit_text(self.display_name, reply_markup=self._keyboard())
 
     def create(self, message):
-        bot_state[message.chat.id] = BotState(message.chat.id, self.chain_name)
-        bs = bot_state[message.chat.id]
-        bs.change_state(self.display_name)
         message.reply_text(self.display_name, reply_markup=self._keyboard())
 
     def _keyboard(self):
@@ -150,42 +132,42 @@ class TextMenu(Menu):
             if self.next_menu:
                 self.next_menu.register(bot)
 
-    def handle_response(self, message, bs: BotState):
+    def handle_response(self, message):
         pass
+
+    def init_creds(self, message):
+        if message.chat_id not in creds or self.chain_name not in creds[message.chat_id]:
+            creds[message.chat_id] = {self.chain_name: Creds(message.chat_id, self.chain_name)}
 
 
 class LoginMenu(TextMenu):
     def display(self, message):
-        chat_id = message.chat.id
-        bs = bot_state[chat_id]
-        is_login_pwd = bs.login and bs.password
-        bs.change_state(self.display_name)
+        self.init_creds(message)
+        is_login_pwd = creds[message.chat_id][self.chain_name].login and creds[message.chat_id][self.chain_name].password
 
         if not is_login_pwd or self.display_name == 'Login':
-            bs.last_message = self.bot.bot.send_message(chat_id, self.text_message, reply_markup=ForceReply())
+            msg = self.bot.bot.send_message(message.chat_id, self.text_message, reply_markup=ForceReply())
             message.delete()
         else:
             self.next_menu.display(message)
 
-    def handle_response(self, message, bs: BotState):
-        bs.login = message.text
+    def handle_response(self, message):
+        creds[message.chat_id][self.chain_name].login = message.text
         self.next_menu.display(message)
 
 
 class PasswordMenu(TextMenu):
     def display(self, message):
-        chat_id = message.chat.id
-        bs = bot_state[chat_id]
-        is_login_pwd = bs.login and bs.password
-        bs.change_state(self.display_name)
+        self.init_creds(message)
+        is_login_pwd = creds[message.chat_id][self.chain_name].login and creds[message.chat_id][self.chain_name].password
 
         if not is_login_pwd or self.parent.display_name == 'Login':
-            bs.last_message = self.bot.bot.send_message(chat_id, self.text_message, reply_markup=ForceReply())
+            msg = self.bot.bot.send_message(message.chat_id, self.text_message, reply_markup=ForceReply())
         else:
             self.next_menu.display(message)
 
-    def handle_response(self, message, bs: BotState):
-        bs.password = message.text
+    def handle_response(self, message):
+        creds[message.chat_id][self.chain_name].password = message.text
 
         if type(self.next_menu) == Menu:
             self.next_menu.create(message)
@@ -195,20 +177,18 @@ class PasswordMenu(TextMenu):
 
 class CvvMenu(TextMenu):
     def display(self, message):
-        chat_id = message.chat.id
-        bs = bot_state[chat_id]
-        is_cvv = bs.cvv
-        bs.change_state(self.display_name)
+        self.init_creds(message)
+        is_cvv = creds[message.chat_id][self.chain_name].cvv
 
         if not is_cvv or self.display_name == 'Payment':
-            bs.last_message = self.bot.bot.send_message(chat_id, self.text_message, reply_markup=ForceReply())
+            msg = self.bot.bot.send_message(message.chat_id, self.text_message, reply_markup=ForceReply())
             if type(self.parent) == Menu:
                 message.delete()
         else:
             self.next_menu.display(message)
 
-    def handle_response(self, message, bs: BotState):
-        bs.cvv = message.text
+    def handle_response(self, message):
+        creds[message.chat_id][self.chain_name].cvv = message.text
 
         if type(self.next_menu) == Menu:
             self.next_menu.create(message)
@@ -245,15 +225,15 @@ class GroceriesBot:
 
             self.m_filter[chain] = Menu(chain, 'Filters', [m_filter_slots, m_show_all_slots])
 
-            m_book_slot_and_checkout = LoginMenu(chain, self, 'Book slot and checkout', 'Checkout: Please enter your login',
-                                                 PasswordMenu(chain, self, 'Password checkout', 'Checkout: Please enter your password',
-                                                              CvvMenu(chain, self, 'Cvv checkout', 'Checkout: Please enter your cvv', self.m_filter[chain])))
-            m_book_slot = LoginMenu(chain, self, 'Book slot', 'Booking: Please enter your login',
-                                    PasswordMenu(chain, self, 'Password after booking', 'Booking: Please enter your password', self.m_filter[chain]))
+            m_book_slot_and_checkout = LoginMenu(chain, self, 'Book slot and checkout', f'{chain.capitalize()}/Checkout: Please enter your login',
+                                                 PasswordMenu(chain, self, 'Password checkout', f'{chain.capitalize()}/Checkout: Please enter your password',
+                                                              CvvMenu(chain, self, 'Cvv checkout', f'{chain.capitalize()}/Checkout: Please enter your cvv', self.m_filter[chain])))
+            m_book_slot = LoginMenu(chain, self, 'Book slot', f'{chain.capitalize()}/Booking: Please enter your login',
+                                    PasswordMenu(chain, self, 'Password after booking', f'{chain.capitalize()}/Booking: Please enter your password', self.m_filter[chain]))
 
-            m_settings_password = PasswordMenu(chain, self, 'Password', 'Settings: Please enter your password', None)
-            m_settings_login = LoginMenu(chain, self, 'Login', 'Settings: Please enter your login', m_settings_password)
-            m_settings_payment = CvvMenu(chain, self, 'Payment', 'Settings: Please enter your cvv', None)
+            m_settings_password = PasswordMenu(chain, self, 'Password', f'{chain.capitalize()}/Settings: Please enter your password', None)
+            m_settings_login = LoginMenu(chain, self, 'Login', f'{chain.capitalize()}/Settings: Please enter your login', m_settings_password)
+            m_settings_payment = CvvMenu(chain, self, 'Payment', f'{chain.capitalize()}/Settings: Please enter your cvv', None)
             self.m_settings[chain] = Menu(chain, 'Settings', [m_settings_login, m_settings_payment])
             # update next menu once password or cvv entered
             m_settings_password.next_menu = self.m_settings[chain]
@@ -274,14 +254,13 @@ class GroceriesBot:
 
     def handle_text(self, update: Update, context: CallbackContext):
         message = get_message(update)
-        bs = bot_state[message.chat.id]
-
-        # the previous invitation
-        if bs.last_message:
-            bs.last_message.delete()
 
         # reply handler call
-        self.reply_menus[message.reply_to_message.text](message, bs)
+        self.reply_menus[message.reply_to_message.text](message)
+
+        # the previous invitation
+        if message.reply_to_message.text:
+            message.reply_to_message.delete()
 
         # user's input
         message.delete()
