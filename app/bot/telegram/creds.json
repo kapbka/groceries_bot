@@ -1,0 +1,14 @@
+{
+  "365436333": {
+    "waitrose": {
+      "cvv": "666",
+      "login": "fffffff",
+      "password": "jjjjj"
+    },
+    "tesco": {
+      "login": "ww",
+      "password": "ee",
+      "cvv": 444
+    }
+  }
+}
