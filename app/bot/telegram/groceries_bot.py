@@ -3,9 +3,9 @@
 from telegram.ext import Updater
 from telegram import Update
 from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackContext
-import logging
-from app.bot.telegram.menu import Menu, LoginMenu, PasswordMenu, CvvMenu
+from app.bot.telegram.menu import Menu, LoginMenu, PasswordMenu, CvvMenu, SlotDayMenu, FilterDayMenu
 from app.bot.telegram.helpers import get_message
+import logging
 
 
 class GroceriesBot:
@@ -29,11 +29,8 @@ class GroceriesBot:
     def create_menu(self):
         chain_menus = []
         for chain in self.chains:
-            m_filtered_slots = Menu(chain, 'Filtered slots', [])
-            m_all_available_slots = Menu(chain, 'All available slots', [])
-
-            m_filter_slots = Menu(chain, 'Filter slots', [m_filtered_slots])
-            m_show_all_slots = Menu(chain, 'Show all slots', [m_all_available_slots])
+            m_filter_slots = FilterDayMenu(chain, 'Filter slots')
+            m_show_all_slots = SlotDayMenu(chain, 'All available slots')
 
             self.m_filter[chain] = Menu(chain, 'Filters', [m_filter_slots, m_show_all_slots])
 
@@ -74,5 +71,6 @@ class GroceriesBot:
         if message.reply_to_message.text:
             message.reply_to_message.delete()
 
-        # user's input
+        # the current user's input
         message.delete()
+

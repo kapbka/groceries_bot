@@ -1,5 +1,5 @@
-from session import Session
-from slot import Slot
+from app.session import Session
+from app.slot import Slot
 
 
 class Waitrose:
@@ -10,7 +10,14 @@ class Waitrose:
         self.cvv = cvv
         self.session = Session(login, password)
 
-    def book_slot(self, slot_type='DELIVERY'):
+    def get_all_available_slots(self, slot_type='DELIVERY'):
+        return Slot(session=self.session, slot_type=slot_type).get_available_slots()
+
+    def book_slot_default_address(self, slot_type, start_datetime, end_datetime):
+        slot = Slot(session=self.session, slot_type=slot_type)
+        return slot.book_slot_default_address(start_datetime, end_datetime)
+
+    def book_current_or_first_available_slot(self, slot_type='DELIVERY'):
         slot = Slot(session=self.session, slot_type=slot_type)
 
         start_date, end_date = slot.get_current_slot()

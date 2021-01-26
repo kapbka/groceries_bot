@@ -6,6 +6,8 @@ import logging
 
 
 class Creds:
+    chat_creds = {}
+
     def __init__(self, chat_id: int, chain_name: str):
         self.chat_id = chat_id
         self.chain_name = chain_name
