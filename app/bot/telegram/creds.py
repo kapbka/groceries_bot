@@ -13,14 +13,14 @@ class Creds:
         self.chain_name = chain_name
         self.data = defaultdict(lambda: defaultdict(lambda: defaultdict(defaultdict)))
 
-        with open('creds.json') as json_file:
+        with open('settings_data/creds.json') as json_file:
             data = json.load(json_file)
             for chat_id, chat_data in data.items():
                 for chain_name, creds in chat_data.items():
                     self.data[chat_id][chain_name].update(creds)
 
     def _save_creds(self):
-        with open('creds.json', 'w') as outfile:
+        with open('settings_data/creds.json', 'w') as outfile:
             json.dump(self.data, outfile, indent=2)
 
     @property

@@ -3,7 +3,10 @@
 from telegram.ext import Updater
 from telegram import Update
 from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackContext
-from app.bot.telegram.menu import Menu, LoginMenu, PasswordMenu, CvvMenu, SlotDayMenu, FilterDayMenu
+from app.bot.telegram.menu.menu import Menu
+from app.bot.telegram.menu.text_menu import LoginMenu, PasswordMenu, CvvMenu
+from app.bot.telegram.menu.slot_menu import SlotDayMenu
+from app.bot.telegram.menu.filter_menu import FilterDayMenu
 from app.bot.telegram.helpers import get_message
 import logging
 
@@ -18,7 +21,6 @@ class GroceriesBot:
         self.bot = self.updater.bot
         self.reply_menus = {}
 
-        self.m_root = None
         self.m_filter = {}
         self.m_settings = {}
 
@@ -43,7 +45,9 @@ class GroceriesBot:
             m_settings_password = PasswordMenu(chain, self, 'Password', f'{chain.capitalize()}/Settings: Please enter your password', None)
             m_settings_login = LoginMenu(chain, self, 'Login', f'{chain.capitalize()}/Settings: Please enter your login', m_settings_password)
             m_settings_payment = CvvMenu(chain, self, 'Payment', f'{chain.capitalize()}/Settings: Please enter your cvv', None)
-            self.m_settings[chain] = Menu(chain, 'Settings', [m_settings_login, m_settings_payment])
+            m_settings_filters = FilterDayMenu(chain, 'Slot filters')
+            m_settings_autobook = Menu(chain, 'Autobooking', [Menu(chain, 'On', [])])
+            self.m_settings[chain] = Menu(chain, 'Settings', [m_settings_login, m_settings_payment, m_settings_filters, m_settings_autobook])
             # update next menu once password or cvv entered
             m_settings_password.next_menu = self.m_settings[chain]
             m_settings_payment.next_menu = self.m_settings[chain]
@@ -53,9 +57,9 @@ class GroceriesBot:
 
             chain_menus.append(m_chain)
 
-        self.m_root = Menu(None, 'Main', chain_menus)
-        self.updater.dispatcher.add_handler(CommandHandler('start', lambda u, c: self.m_root.create(get_message(u))))
-        self.m_root.register(self)
+        m_root = Menu(None, 'Main', chain_menus)
+        self.updater.dispatcher.add_handler(CommandHandler('start', lambda u, c: m_root.create(get_message(u))))
+        m_root.register(self)
         self.updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, self.handle_text))
 
     def run(self):
@@ -73,4 +77,3 @@ class GroceriesBot:
 
         # the current user's input
         message.delete()
-

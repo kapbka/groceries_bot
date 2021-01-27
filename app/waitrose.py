@@ -15,7 +15,7 @@ class Waitrose:
 
     def book_slot_default_address(self, slot_type, start_datetime, end_datetime):
         slot = Slot(session=self.session, slot_type=slot_type)
-        return slot.book_slot_default_address(start_datetime, end_datetime)
+        return slot.book_slot_default_address(slot_type, start_datetime, end_datetime)
 
     def book_current_or_first_available_slot(self, slot_type='DELIVERY'):
         slot = Slot(session=self.session, slot_type=slot_type)

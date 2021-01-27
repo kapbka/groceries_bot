@@ -66,16 +66,16 @@ class Slot:
 
         return res
 
-    def book_slot_default_address(self, start_date_time: datetime, end_date_time: datetime):
+    def book_slot_default_address(self, slot_type, start_date_time: datetime, end_date_time: datetime):
         try:
             book = self.book_slot(branch_id=self.session.default_branch_id,
                                   postcode=self.session.default_postcode,
                                   address_id=self.session.default_address_id,
-                                  slot_type=self.slot_type,
-                                  start_date_time=datetime.strptime(start_date_time, '%Y-%m-%dT%H:%M:%SZ'),
-                                  end_date_time=datetime.strptime(end_date_time, '%Y-%m-%dT%H:%M:%SZ'))
-        except:
-            logging.exception(f'Booking for the slot "{sd} - {ed}" failed, trying to book the next slot')
+                                  slot_type=slot_type,
+                                  start_date_time=start_date_time,
+                                  end_date_time=end_date_time)
+        except Exception as ex:
+            logging.exception(f'Booking for the slot failed: {ex}')
             raise
 
     def book_slot(self,
