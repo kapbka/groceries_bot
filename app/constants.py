@@ -6,11 +6,16 @@ WEEKDAYS = IntEnum('Weekdays', 'mon tue wed thu fri sat sun', start=0)
 
 SESSION_ENDPOINT_URL = "https://www.waitrose.com/api/graphql-prod/graph/live"
 
+# returns strange data
 ACCOUNT_URL = 'https://www.waitrose.com/api/account-orchestration-prod/v1/accounts/self'
+
+MEMBERSHIP_URL = 'https://www.waitrose.com/api/memberships-prod/v1/memberships'
 
 LAST_ADDRESS_ID_URL = 'https://www.waitrose.com/api/address-prod/v1/addresses?sortBy=-lastDelivery'
 
 ORDER_LIST_URL = 'https://www.waitrose.com/api/order-orchestration-prod/v1/orders?size=15&statuses=COMPLETED%2BCANCELLED%2BREFUND_PENDING'
+
+BRANCH_ID_BY_POSCODE_URL = 'https://www.waitrose.com/api/branch-prod/v3/branches?fulfilment_type=DELIVERY&location={}'
 
 PRODUCT_LIST_URL = 'https://www.waitrose.com/api/products-prod/v1/products/{}?view=SUMMARY'
 

@@ -1,6 +1,7 @@
 import requests
 from python_graphql_client import GraphqlClient
 from app import constants
+import logging
 
 
 class Session:
@@ -18,14 +19,17 @@ class Session:
         self.customerId = int(session_data['data']['generateSession']['customerId'])
         self.customerOrderId = int(session_data['data']['generateSession']['customerOrderId'])
 
-        account_data = requests.get(constants.ACCOUNT_URL, headers=self.headers).json()
-        self.default_address_id = int(account_data['preferences']['defaultDeliveryAddressId'])
-        self.default_branch_id = int(account_data['preferences']['defaultBranchId'])
-
         address_list = self.get_address_list()
-        self.default_postcode = next(iter(filter(lambda x: int(x['id']) == self.default_address_id, address_list)))
+        self.default_address_id = address_list[0]['id']
+        self.default_postcode = address_list[0]['postalCode']
+        postcode_branches = requests.get(constants.BRANCH_ID_BY_POSCODE_URL.format(self.default_postcode),
+                                         headers=self.headers).json()
+        if postcode_branches or postcode_branches['totalCount'] >= 1:
+            self.default_branch_id = filter(lambda x: x['branch']['id'] if x['defaultBranch'] == 'true' else None,
+                                            postcode_branches['branches'])
 
     def execute(self, query: str, variables: dict):
+        logging.debug(variables)
         return self.client.execute(
                 query=query,
                 variables=variables,

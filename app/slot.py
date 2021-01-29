@@ -54,9 +54,9 @@ class Slot:
                 sd_weekday = constants.WEEKDAYS(sd_weekday).name
                 if not slot_filter or sd_weekday in list(slot_filter.keys()):
                     res.update({s['slotId']: s for s in sd['slots']
-                                # if s['slotStatus'] not in ['FULLY_BOOKED', 'UNAVAILABLE']
-                                # and
-                                if (not slot_filter
+                                if s['slotStatus'] not in ['FULLY_BOOKED', 'UNAVAILABLE']
+                                and
+                                (not slot_filter
                                  or
                                  datetime.strptime(s['startDateTime'], '%Y-%m-%dT%H:%M:%SZ').time() in
                                  slot_filter[sd_weekday])
