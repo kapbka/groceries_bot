@@ -16,6 +16,7 @@ class FilterDayMenu(Menu):
         self.init_filters(message)
 
         self.children.clear()
+
         # 1. create filter day of week
         for wd in range(7):
             m_filter_day = Menu(self.chain_name, f'{str(WEEKDAYS(wd).name).capitalize()}', [])
@@ -29,14 +30,20 @@ class FilterDayMenu(Menu):
                 wd_filters = getattr(Filter.chat_filters[message.chat_id][self.chain_name], WEEKDAYS(wd).name)
                 slot_name = "{:02d}:00-{:02d}:00".format(st, st+1)
                 if slot_name in wd_filters:
-                    slot_prefix = '[✓]'
+                    slot_prefix = '\u2705'
                 else:
-                    slot_prefix = '[  ]'
+                    slot_prefix = '\u25fb'
                 m_filter_slot = FilterTimeMenu(self.chain_name, "{} {}".format(slot_prefix, slot_name))
                 m_filter_slot.parent = self.children[-1]
                 # append m_slot as a child to m_day menu
                 self.children[-1].children.append(m_filter_slot)
                 m_filter_slot.register(self.bot)
+
+        m_auto_booking = Menu(self.chain_name, '\u2705 Enable', [])
+        m_auto_booking.parent = self
+        # append m_day as a child to Show available slots menu
+        self.children.append(m_auto_booking)
+        m_auto_booking.register(self.bot)
 
         # 3. adding text
         message.edit_text(self.display_name, reply_markup=self._keyboard(self.children))
@@ -47,19 +54,19 @@ class FilterDayMenu(Menu):
 
 
 class FilterTimeMenu(Menu):
-    def __init__(self, chain_name: str, display_name: str):
-        super().__init__(chain_name, display_name, [])
+    def __init__(self, chain_name: str, display_name: str, alignment_len: int = 40):
+        super().__init__(chain_name, display_name, [], alignment_len)
 
     def display(self, message):
         wd = self.parent.display_name.lower()
         wd_filters = getattr(Filter.chat_filters[message.chat_id][self.chain_name], wd)
-        if self.display_name.startswith('[✓]'):
+        if self.display_name.startswith('\u2705'):
             # remove
-            wd_filters.remove(self.display_name[4:])
-            self.display_name = self.display_name.replace('[✓]', '[  ]')
+            wd_filters.remove(self.display_name[2:])
+            self.display_name = self.display_name.replace('\u2705', '\u25fb')
         else:
             # add
-            wd_filters.append(self.display_name[5:])
-            self.display_name = self.display_name.replace('[  ]', '[✓]')
+            wd_filters.append(self.display_name[2:])
+            self.display_name = self.display_name.replace('\u25fb', '\u2705')
         setattr(Filter.chat_filters[message.chat_id][self.chain_name], wd, wd_filters)
         self.parent.display(message)

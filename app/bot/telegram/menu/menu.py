@@ -8,13 +8,14 @@ from app.bot.telegram.helpers import get_message
 
 
 class Menu:
-    def __init__(self, chain_name: str, display_name: str, children: list):
+    def __init__(self, chain_name: str, display_name: str, children: list, alignment_len: int = 22):
         self.chain_name = chain_name
         self.name = str(uuid.uuid4())
         self.display_name = display_name
         self.parent = None
         self.children = children
         self.bot = None
+        self.alignment_len = alignment_len
 
     def register(self, bot):
         self.bot = bot
@@ -40,7 +41,7 @@ class Menu:
         for c in children:
             disp_len += len(c.display_name)
             btn = InlineKeyboardButton(c.display_name, callback_data=c.name)
-            if disp_len > 33:
+            if disp_len > c.alignment_len:
                 res.append(sub_res)
                 disp_len = len(c.display_name)
                 sub_res = [btn]

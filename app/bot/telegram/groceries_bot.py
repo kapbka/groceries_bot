@@ -21,7 +21,7 @@ class GroceriesBot:
         self.bot = self.updater.bot
         self.reply_menus = {}
 
-        self.m_filter = {}
+        self.m_slots = {}
         self.m_settings = {}
 
         self.last_message = None
@@ -31,29 +31,26 @@ class GroceriesBot:
     def create_menu(self):
         chain_menus = []
         for chain in self.chains:
-            m_filter_slots = FilterDayMenu(chain, 'Filter slots')
-            m_show_all_slots = SlotDayMenu(chain, 'All available slots')
+            self.m_slots[chain] = SlotDayMenu(chain, 'All available slot days')
 
-            self.m_filter[chain] = Menu(chain, 'Filters', [m_filter_slots, m_show_all_slots])
-
+            m_auto_booking = FilterDayMenu(chain, 'Autobooking')
             m_book_slot_and_checkout = LoginMenu(chain, self, 'Book slot and checkout', f'{chain.capitalize()}/Checkout: Please enter your login',
                                                  PasswordMenu(chain, self, 'Password checkout', f'{chain.capitalize()}/Checkout: Please enter your password',
-                                                              CvvMenu(chain, self, 'Cvv checkout', f'{chain.capitalize()}/Checkout: Please enter your cvv', self.m_filter[chain])))
+                                                              CvvMenu(chain, self, 'Cvv checkout', f'{chain.capitalize()}/Checkout: Please enter your cvv', self.m_slots[chain])))
             m_book_slot = LoginMenu(chain, self, 'Book slot', f'{chain.capitalize()}/Booking: Please enter your login',
-                                    PasswordMenu(chain, self, 'Password after booking', f'{chain.capitalize()}/Booking: Please enter your password', self.m_filter[chain]))
+                                    PasswordMenu(chain, self, 'Password after booking', f'{chain.capitalize()}/Booking: Please enter your password', self.m_slots[chain]))
+            m_checkout = CvvMenu(chain, self, 'Checkout', f'{chain.capitalize()}/Settings: Please enter your cvv', None)
 
             m_settings_password = PasswordMenu(chain, self, 'Password', f'{chain.capitalize()}/Settings: Please enter your password', None)
             m_settings_login = LoginMenu(chain, self, 'Login', f'{chain.capitalize()}/Settings: Please enter your login', m_settings_password)
-            m_settings_payment = CvvMenu(chain, self, 'Payment', f'{chain.capitalize()}/Settings: Please enter your cvv', None)
-            m_settings_filters = FilterDayMenu(chain, 'Slot filters')
-            m_settings_autobook = Menu(chain, 'Autobooking', [Menu(chain, 'On', [])])
-            self.m_settings[chain] = Menu(chain, 'Settings', [m_settings_login, m_settings_payment, m_settings_filters, m_settings_autobook])
+            m_settings_payment = CvvMenu(chain, self, 'Payment details', f'{chain.capitalize()}/Settings: Please enter your cvv', None)
+            self.m_settings[chain] = Menu(chain, 'Settings', [m_settings_login, m_settings_payment])
             # update next menu once password or cvv entered
             m_settings_password.next_menu = self.m_settings[chain]
             m_settings_payment.next_menu = self.m_settings[chain]
 
-            m_chain = Menu(chain, chain.capitalize(), [m_book_slot_and_checkout, m_book_slot, self.m_settings[chain]])
-            self.m_filter[chain].parent = m_chain
+            m_chain = Menu(chain, chain.capitalize(), [m_auto_booking, m_book_slot_and_checkout, m_book_slot, m_checkout, self.m_settings[chain]])
+            self.m_slots[chain].parent = m_chain
 
             chain_menus.append(m_chain)
 

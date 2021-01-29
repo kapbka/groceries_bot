@@ -25,8 +25,8 @@ class Session:
         postcode_branches = requests.get(constants.BRANCH_ID_BY_POSCODE_URL.format(self.default_postcode),
                                          headers=self.headers).json()
         if postcode_branches or postcode_branches['totalCount'] >= 1:
-            self.default_branch_id = filter(lambda x: x['branch']['id'] if x['defaultBranch'] == 'true' else None,
-                                            postcode_branches['branches'])
+            self.default_branch_id = [branch['branch']['id'] for branch in postcode_branches['branches']
+                                      if branch['defaultBranch']][0]
 
     def execute(self, query: str, variables: dict):
         logging.debug(variables)

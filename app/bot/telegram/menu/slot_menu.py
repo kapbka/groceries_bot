@@ -55,8 +55,9 @@ class SlotDayMenu(Menu):
 
 
 class SlotTimeMenu(Menu):
-    def __init__(self, chain_name: str, display_name: str, start_datetime: datetime, end_datetime: datetime):
-        super().__init__(chain_name, display_name, [])
+    def __init__(self, chain_name: str, display_name: str, start_datetime: datetime, end_datetime: datetime,
+                 alignment_len: int = 40):
+        super().__init__(chain_name, display_name, [], alignment_len)
         self.start_datetime = start_datetime
         self.end_datetime = end_datetime
 
