@@ -1,7 +1,7 @@
 # Filter Menu classes
 
 import logging
-from app.constants import WEEKDAYS
+from app.constants import WEEKDAYS, ENABLED_EMOJI, DISABLED_EMOJI
 from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram.filters import Filter
 
@@ -30,16 +30,16 @@ class FilterDayMenu(Menu):
                 wd_filters = getattr(Filter.chat_filters[message.chat_id][self.chain_name], WEEKDAYS(wd).name)
                 slot_name = "{:02d}:00-{:02d}:00".format(st, st+1)
                 if slot_name in wd_filters:
-                    slot_prefix = '\u2705'
+                    slot_prefix = ENABLED_EMOJI
                 else:
-                    slot_prefix = '\u25fb'
+                    slot_prefix = DISABLED_EMOJI
                 m_filter_slot = FilterTimeMenu(self.chain_name, "{} {}".format(slot_prefix, slot_name))
                 m_filter_slot.parent = self.children[-1]
                 # append m_slot as a child to m_day menu
                 self.children[-1].children.append(m_filter_slot)
                 m_filter_slot.register(self.bot)
 
-        m_auto_booking = Menu(self.chain_name, '\u2705 Enable', [])
+        m_auto_booking = Menu(self.chain_name, f'{ENABLED_EMOJI} Enabled', [])
         m_auto_booking.parent = self
         # append m_day as a child to Show available slots menu
         self.children.append(m_auto_booking)
@@ -60,13 +60,13 @@ class FilterTimeMenu(Menu):
     def display(self, message):
         wd = self.parent.display_name.lower()
         wd_filters = getattr(Filter.chat_filters[message.chat_id][self.chain_name], wd)
-        if self.display_name.startswith('\u2705'):
+        if self.display_name.startswith(ENABLED_EMOJI):
             # remove
             wd_filters.remove(self.display_name[2:])
-            self.display_name = self.display_name.replace('\u2705', '\u25fb')
+            self.display_name = self.display_name.replace(ENABLED_EMOJI, DISABLED_EMOJI)
         else:
             # add
             wd_filters.append(self.display_name[2:])
-            self.display_name = self.display_name.replace('\u25fb', '\u2705')
+            self.display_name = self.display_name.replace(DISABLED_EMOJI, ENABLED_EMOJI)
         setattr(Filter.chat_filters[message.chat_id][self.chain_name], wd, wd_filters)
         self.parent.display(message)

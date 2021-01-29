@@ -2,6 +2,10 @@
 from enum import IntEnum
 
 
+ENABLED_EMOJI = '\u2705'
+
+DISABLED_EMOJI = '\u25fb'
+
 WEEKDAYS = IntEnum('Weekdays', 'mon tue wed thu fri sat sun', start=0)
 
 SESSION_ENDPOINT_URL = "https://www.waitrose.com/api/graphql-prod/graph/live"
