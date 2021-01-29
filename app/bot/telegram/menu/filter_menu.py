@@ -3,7 +3,7 @@
 import logging
 from app.constants import WEEKDAYS, ENABLED_EMOJI, DISABLED_EMOJI
 from app.bot.telegram.menu.menu import Menu
-from app.bot.telegram.filters import Filter
+from app.bot.telegram.autobook import Autobook
 
 
 class FilterDayMenu(Menu):
@@ -13,7 +13,7 @@ class FilterDayMenu(Menu):
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}')
 
-        self.init_filters(message)
+        self.init_autobook(message)
 
         self.children.clear()
 
@@ -27,7 +27,7 @@ class FilterDayMenu(Menu):
 
             # 2. create slots for the day of the week
             for st in range(7, 22):
-                wd_filters = getattr(Filter.chat_filters[message.chat_id][self.chain_name], WEEKDAYS(wd).name)
+                wd_filters = getattr(Autobook.chat_autobook[message.chat_id][self.chain_name], WEEKDAYS(wd).name)
                 slot_name = "{:02d}:00-{:02d}:00".format(st, st+1)
                 if slot_name in wd_filters:
                     slot_prefix = ENABLED_EMOJI
@@ -39,7 +39,11 @@ class FilterDayMenu(Menu):
                 self.children[-1].children.append(m_filter_slot)
                 m_filter_slot.register(self.bot)
 
-        m_auto_booking = Menu(self.chain_name, f'{ENABLED_EMOJI} Enabled', [])
+        if Autobook.chat_autobook[message.chat_id][self.chain_name].autobook:
+            enabled_prefix = ENABLED_EMOJI
+        else:
+            enabled_prefix = DISABLED_EMOJI
+        m_auto_booking = EnabledMenu(self.chain_name, f'{enabled_prefix} Enabled')
         m_auto_booking.parent = self
         # append m_day as a child to Show available slots menu
         self.children.append(m_auto_booking)
@@ -48,9 +52,9 @@ class FilterDayMenu(Menu):
         # 3. adding text
         message.edit_text(self.display_name, reply_markup=self._keyboard(self.children))
 
-    def init_filters(self, message):
-        if message.chat_id not in Filter.chat_filters or self.chain_name not in Filter.chat_filters[message.chat_id]:
-            Filter.chat_filters[message.chat_id] = {self.chain_name: Filter(message.chat_id, self.chain_name)}
+    def init_autobook(self, message):
+        if message.chat_id not in Autobook.chat_autobook or self.chain_name not in Autobook.chat_autobook[message.chat_id]:
+            Autobook.chat_autobook[message.chat_id] = {self.chain_name: Autobook(message.chat_id, self.chain_name)}
 
 
 class FilterTimeMenu(Menu):
@@ -59,7 +63,7 @@ class FilterTimeMenu(Menu):
 
     def display(self, message):
         wd = self.parent.display_name.lower()
-        wd_filters = getattr(Filter.chat_filters[message.chat_id][self.chain_name], wd)
+        wd_filters = getattr(Autobook.chat_autobook[message.chat_id][self.chain_name], wd)
         if self.display_name.startswith(ENABLED_EMOJI):
             # remove
             wd_filters.remove(self.display_name[2:])
@@ -68,5 +72,21 @@ class FilterTimeMenu(Menu):
             # add
             wd_filters.append(self.display_name[2:])
             self.display_name = self.display_name.replace(DISABLED_EMOJI, ENABLED_EMOJI)
-        setattr(Filter.chat_filters[message.chat_id][self.chain_name], wd, wd_filters)
+        setattr(Autobook.chat_autobook[message.chat_id][self.chain_name], wd, wd_filters)
+        self.parent.display(message)
+
+
+class EnabledMenu(Menu):
+    def __init__(self, chain_name: str, display_name: str, alignment_len: int = 10):
+        super().__init__(chain_name, display_name, [], alignment_len)
+
+    def display(self, message):
+        if self.display_name.startswith(ENABLED_EMOJI):
+            # remove
+            Autobook.chat_autobook[message.chat_id][self.chain_name].autobook = False
+            self.display_name = self.display_name.replace(ENABLED_EMOJI, DISABLED_EMOJI)
+        else:
+            # add
+            Autobook.chat_autobook[message.chat_id][self.chain_name].autobook = True
+            self.display_name = self.display_name.replace(DISABLED_EMOJI, ENABLED_EMOJI)
         self.parent.display(message)
