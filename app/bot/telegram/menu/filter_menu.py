@@ -9,7 +9,7 @@ from app.bot.telegram.autobook import Autobook
 
 
 class FilterDayMenu(Menu):
-    def __init__(self, chain_name: str, display_name: str, start_time: datetime, end_time: datetime.time):
+    def __init__(self, chain_name: str, display_name: str, start_time: datetime.time, end_time: datetime.time):
         super().__init__(chain_name, display_name, [])
         self.start_time = start_time
         self.end_time = end_time

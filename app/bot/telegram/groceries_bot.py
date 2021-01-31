@@ -34,7 +34,13 @@ class GroceriesBot:
         for chain in self.chains:
             self.m_slots[chain] = SlotDayMenu(chain, 'All available slot days')
 
-            m_auto_booking = FilterDayMenu(chain, 'Autobooking', datetime.time(7, 00, 00), datetime.time(22, 00, 00))
+            start_time = datetime.time(7, 00, 00)
+            end_time = datetime.time(22, 00, 00)
+            # redefine for tesco
+            if chain == 'tesco':
+                start_time = datetime.time(8, 00, 00)
+                end_time = datetime.time(23, 00, 00)
+            m_auto_booking = FilterDayMenu(chain, 'Autobooking', start_time, end_time)
             m_book_slot_and_checkout = LoginMenu(chain, self, 'Book slot and checkout', f'{chain.capitalize()}/Checkout: Please enter your login',
                                                  PasswordMenu(chain, self, 'Password checkout', f'{chain.capitalize()}/Checkout: Please enter your password',
                                                               CvvMenu(chain, self, 'Cvv checkout', f'{chain.capitalize()}/Checkout: Please enter your cvv', self.m_slots[chain])))
