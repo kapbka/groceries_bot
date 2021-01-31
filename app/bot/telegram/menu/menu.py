@@ -5,6 +5,8 @@ import logging
 from telegram.ext import CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from app.bot.telegram.helpers import get_message
+from app.bot.telegram.creds import Creds
+from app.waitrose.waitrose import Waitrose
 
 
 class Menu:

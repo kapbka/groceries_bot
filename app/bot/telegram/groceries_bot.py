@@ -5,6 +5,7 @@ import datetime
 from telegram.ext import Updater
 from telegram import Update
 from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackContext
+# bot
 from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram.menu.text_menu import LoginMenu, PasswordMenu, CvvMenu
 from app.bot.telegram.menu.slot_menu import SlotDayMenu
@@ -34,19 +35,13 @@ class GroceriesBot:
         for chain in self.chains:
             self.m_slots[chain] = SlotDayMenu(chain, 'All available slot days')
 
-            start_time = datetime.time(7, 00, 00)
-            end_time = datetime.time(22, 00, 00)
-            # redefine for tesco
-            if chain == 'tesco':
-                start_time = datetime.time(8, 00, 00)
-                end_time = datetime.time(23, 00, 00)
-            m_auto_booking = FilterDayMenu(chain, 'Autobooking', start_time, end_time)
+            m_auto_booking = FilterDayMenu(chain, 'Autobooking')
             m_book_slot_and_checkout = LoginMenu(chain, self, 'Book slot and checkout', f'{chain.capitalize()}/Checkout: Please enter your login',
                                                  PasswordMenu(chain, self, 'Password checkout', f'{chain.capitalize()}/Checkout: Please enter your password',
                                                               CvvMenu(chain, self, 'Cvv checkout', f'{chain.capitalize()}/Checkout: Please enter your cvv', self.m_slots[chain])))
-            m_book_slot = LoginMenu(chain, self, 'Book slot', f'{chain.capitalize()}/Booking: Please enter your login',
-                                    PasswordMenu(chain, self, 'Password after booking', f'{chain.capitalize()}/Booking: Please enter your password', self.m_slots[chain]))
-            m_checkout = CvvMenu(chain, self, 'Checkout', f'{chain.capitalize()}/Settings: Please enter your cvv', None)
+            # m_book_slot = LoginMenu(chain, self, 'Book slot', f'{chain.capitalize()}/Booking: Please enter your login',
+            #                         PasswordMenu(chain, self, 'Password after booking', f'{chain.capitalize()}/Booking: Please enter your password', self.m_slots[chain]))
+            # m_checkout = CvvMenu(chain, self, 'Checkout', f'{chain.capitalize()}/Settings: Please enter your cvv', None)
 
             m_settings_password = PasswordMenu(chain, self, 'Password', f'{chain.capitalize()}/Settings: Please enter your password', None)
             m_settings_login = LoginMenu(chain, self, 'Login', f'{chain.capitalize()}/Settings: Please enter your login', m_settings_password)
@@ -56,7 +51,7 @@ class GroceriesBot:
             m_settings_password.next_menu = self.m_settings[chain]
             m_settings_payment.next_menu = self.m_settings[chain]
 
-            m_chain = Menu(chain, chain.capitalize(), [m_auto_booking, m_book_slot_and_checkout, m_book_slot, m_checkout, self.m_settings[chain]])
+            m_chain = Menu(chain, chain.capitalize(), [m_auto_booking, m_book_slot_and_checkout, self.m_settings[chain]])
             self.m_slots[chain].parent = m_chain
 
             chain_menus.append(m_chain)

@@ -1,8 +1,14 @@
+# Waitrose class
 from app.waitrose.session import Session
 from app.waitrose.slot import Slot
+import datetime
 
 
 class Waitrose:
+
+    slot_start_time = datetime.time(7, 00, 00)
+    slot_end_time = datetime.time(22, 00, 00)
+
     def __init__(self, login, password, slot_filter=None, cvv=None):
         self.login = login
         self.password = password
@@ -35,3 +41,7 @@ class Waitrose:
         if self.cvv:
             card_list = self.session.get_payment_card_list()
             self.session.checkout_trolley(self.session.customerOrderId, card_list[0], self.cvv)
+
+    def get_current_slot(self):
+        slot = Slot(session=self.session, slot_type='DELIVERY')
+        return slot.get_current_slot()

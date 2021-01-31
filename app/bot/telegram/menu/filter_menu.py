@@ -1,18 +1,28 @@
 # Filter Menu classes
 
 import logging
-from datetime import datetime
+import datetime
 from app.constants import WEEKDAYS
 from app.bot.telegram.constants import ENABLED_EMOJI, DISABLED_EMOJI
 from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram.autobook import Autobook
+from app.waitrose.waitrose import Waitrose
+from app.tesco.tesco import Tesco
 
 
 class FilterDayMenu(Menu):
-    def __init__(self, chain_name: str, display_name: str, start_time: datetime.time, end_time: datetime.time):
+    def __init__(self, chain_name: str, display_name: str):
         super().__init__(chain_name, display_name, [])
-        self.start_time = start_time
-        self.end_time = end_time
+
+        if chain_name == 'waitrose':
+            self.start_time = Waitrose.slot_start_time
+            self.end_time = Waitrose.slot_end_time
+        elif chain_name == 'tesco':
+            self.start_time = Tesco.slot_start_time
+            self.end_time = Tesco.slot_end_time
+        else:
+            self.start_time = datetime.time(7, 00, 00)
+            self.end_time = datetime.time(22, 00, 00)
 
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}')
