@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta, time
 import logging
-from app import constants
-from app.session import Session
+from app.waitrose import constants
+from app.constants import WEEKDAYS
+from app.waitrose.session import Session
 
 
 class Slot:
@@ -38,7 +39,7 @@ class Slot:
             if not isinstance(slot_filter, dict):
                 raise ValueError('slot_filter parameter must be a dict!')
             for k, v in slot_filter.items():
-                if not isinstance(k, str) or k.lower() not in [e.name for e in constants.WEEKDAYS]:
+                if not isinstance(k, str) or k.lower() not in [e.name for e in WEEKDAYS]:
                     raise ValueError('Wrong work day, must be on of the work days: mon tue wed thu fri sat sun')
                 if len(v) == 0:
                     raise ValueError(f'No slots passed for "{k}"')
@@ -51,7 +52,7 @@ class Slot:
             slot_days = self.get_slots(branch_id=self.session.default_branch_id, date_from=datetime.today() + timedelta(si*5))
             for sd in slot_days:
                 sd_weekday = datetime.strptime(sd['date'], '%Y-%m-%d').weekday()
-                sd_weekday = constants.WEEKDAYS(sd_weekday).name
+                sd_weekday = WEEKDAYS(sd_weekday).name
                 if not slot_filter or sd_weekday in list(slot_filter.keys()):
                     res.update({s['slotId']: s for s in sd['slots']
                                 if s['slotStatus'] not in ['FULLY_BOOKED', 'UNAVAILABLE']

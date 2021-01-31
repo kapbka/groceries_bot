@@ -1,5 +1,5 @@
-from app.session import Session
-from app.slot import Slot
+from app.waitrose.session import Session
+from app.waitrose.slot import Slot
 
 
 class Waitrose:

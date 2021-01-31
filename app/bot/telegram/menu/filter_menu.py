@@ -1,7 +1,8 @@
 # Filter Menu classes
 
 import logging
-from app.constants import WEEKDAYS, ENABLED_EMOJI, DISABLED_EMOJI
+from app.constants import WEEKDAYS
+from app.bot.telegram.constants import ENABLED_EMOJI, DISABLED_EMOJI
 from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram.autobook import Autobook
 

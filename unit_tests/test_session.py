@@ -5,7 +5,7 @@ Command line: python -m pytest unit_tests/test_session.py
 import pytest
 import requests
 import mock
-from app.session import Session
+from app.waitrose.waitrose import Session
 import session_constants
 
 

@@ -1,6 +1,6 @@
 import requests
 from python_graphql_client import GraphqlClient
-from app import constants
+from app.waitrose import constants
 import logging
 
 

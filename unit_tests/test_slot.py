@@ -6,8 +6,8 @@ import pytest
 import mock
 import slot_constants
 
-from app.slot import Slot
-from app import constants
+from app.waitrose.waitrose import Slot
+from app.bot.telegram import constants
 from datetime import datetime, time
 
 

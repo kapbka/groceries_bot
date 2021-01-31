@@ -1,11 +1,10 @@
 # Slot Menu classes
 
-import uuid
 import logging
 from datetime import datetime
 from app.bot.telegram.creds import Creds
 from app.constants import WEEKDAYS
-from app.waitrose import Waitrose
+from app.waitrose.waitrose import Waitrose
 from app.bot.telegram.menu.menu import Menu
 
 
