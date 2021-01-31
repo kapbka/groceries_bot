@@ -1,5 +1,7 @@
 # GroceriesBot class
 
+import logging
+import datetime
 from telegram.ext import Updater
 from telegram import Update
 from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackContext
@@ -8,7 +10,6 @@ from app.bot.telegram.menu.text_menu import LoginMenu, PasswordMenu, CvvMenu
 from app.bot.telegram.menu.slot_menu import SlotDayMenu
 from app.bot.telegram.menu.filter_menu import FilterDayMenu
 from app.bot.telegram.helpers import get_message
-import logging
 
 
 class GroceriesBot:
@@ -33,7 +34,7 @@ class GroceriesBot:
         for chain in self.chains:
             self.m_slots[chain] = SlotDayMenu(chain, 'All available slot days')
 
-            m_auto_booking = FilterDayMenu(chain, 'Autobooking')
+            m_auto_booking = FilterDayMenu(chain, 'Autobooking', datetime.time(7, 00, 00), datetime.time(22, 00, 00))
             m_book_slot_and_checkout = LoginMenu(chain, self, 'Book slot and checkout', f'{chain.capitalize()}/Checkout: Please enter your login',
                                                  PasswordMenu(chain, self, 'Password checkout', f'{chain.capitalize()}/Checkout: Please enter your password',
                                                               CvvMenu(chain, self, 'Cvv checkout', f'{chain.capitalize()}/Checkout: Please enter your cvv', self.m_slots[chain])))
@@ -43,7 +44,7 @@ class GroceriesBot:
 
             m_settings_password = PasswordMenu(chain, self, 'Password', f'{chain.capitalize()}/Settings: Please enter your password', None)
             m_settings_login = LoginMenu(chain, self, 'Login', f'{chain.capitalize()}/Settings: Please enter your login', m_settings_password)
-            m_settings_payment = CvvMenu(chain, self, 'Payment details', f'{chain.capitalize()}/Settings: Please enter your cvv', None)
+            m_settings_payment = CvvMenu(chain, self, 'Payment details', f'{chain.capitalize()}/Settings: Please enter cvv of a payment card linked to your "{chain.capitalize()}" profile', None)
             self.m_settings[chain] = Menu(chain, 'Settings', [m_settings_login, m_settings_payment])
             # update next menu once password or cvv entered
             m_settings_password.next_menu = self.m_settings[chain]

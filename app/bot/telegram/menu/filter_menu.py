@@ -1,6 +1,7 @@
 # Filter Menu classes
 
 import logging
+from datetime import datetime
 from app.constants import WEEKDAYS
 from app.bot.telegram.constants import ENABLED_EMOJI, DISABLED_EMOJI
 from app.bot.telegram.menu.menu import Menu
@@ -8,8 +9,10 @@ from app.bot.telegram.autobook import Autobook
 
 
 class FilterDayMenu(Menu):
-    def __init__(self, chain_name: str, display_name: str):
+    def __init__(self, chain_name: str, display_name: str, start_time: datetime, end_time: datetime.time):
         super().__init__(chain_name, display_name, [])
+        self.start_time = start_time
+        self.end_time = end_time
 
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}')
@@ -27,7 +30,7 @@ class FilterDayMenu(Menu):
             m_filter_day.register(self.bot)
 
             # 2. create slots for the day of the week
-            for st in range(7, 22):
+            for st in range(self.start_time.hour, self.end_time.hour):
                 wd_filters = getattr(Autobook.chat_autobook[message.chat_id][self.chain_name], WEEKDAYS(wd).name)
                 slot_name = "{:02d}:00-{:02d}:00".format(st, st+1)
                 if slot_name in wd_filters:
