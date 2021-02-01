@@ -28,9 +28,9 @@ class GroceriesBot:
 
         self.last_message = None
 
-        self.create_menu()
+    def create_menu(self, update: Update, context: CallbackContext):
+        message = get_message(update)
 
-    def create_menu(self):
         chain_menus = []
         for chain in self.chains:
             self.m_slots[chain] = SlotDayMenu(chain, 'All available slot days')
@@ -57,11 +57,13 @@ class GroceriesBot:
             chain_menus.append(m_chain)
 
         m_root = Menu(None, 'Main', chain_menus)
-        self.updater.dispatcher.add_handler(CommandHandler('start', lambda u, c: m_root.create(get_message(u))))
         m_root.register(self)
-        self.updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, self.handle_text))
+
+        return m_root.create(get_message(update))
 
     def run(self):
+        self.updater.dispatcher.add_handler(CommandHandler('start', self.create_menu))
+        self.updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, self.handle_text))
         self.updater.start_polling()
 
     def handle_text(self, update: Update, context: CallbackContext):

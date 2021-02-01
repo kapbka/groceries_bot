@@ -6,8 +6,12 @@ import datetime
 
 class Waitrose:
 
+    name = 'waitrose'
+    display_name = 'Waitrose'
+
     slot_start_time = datetime.time(7, 00, 00)
     slot_end_time = datetime.time(22, 00, 00)
+    slot_interval_hrs = 1
 
     def __init__(self, login, password, slot_filter=None, cvv=None):
         self.login = login

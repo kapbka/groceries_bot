@@ -16,8 +16,12 @@ class Tesco:
 
     BASE_URL = 'https://www.tesco.com/'
 
+    name = 'tesco'
+    display_name = 'Tesco'
+
     slot_start_time = datetime.time(8, 00, 00)
     slot_end_time = datetime.time(23, 00, 00)
+    slot_interval_hrs = 1
 
     def __init__(self, login, password, cvv):
         self._login = login
