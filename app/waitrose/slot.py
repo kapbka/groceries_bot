@@ -24,7 +24,7 @@ class Slot:
 
         return slots_json['data']['slotDays']['content']
 
-    def get_available_slots(self, slot_filter: dict = None, page_cnt: int = 4):
+    def get_available_slots(self, slot_filter: dict = None, page_cnt: int = 2):
         """
         Returns all available slots with filters if necessary
         :param slot_filter: list which contains tuples each of which contains 3 elements:

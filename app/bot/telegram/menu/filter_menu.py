@@ -11,18 +11,11 @@ from app.tesco.tesco import Tesco
 
 
 class FilterDayMenu(Menu):
-    def __init__(self, chain_name: str, display_name: str):
-        super().__init__(chain_name, display_name, [])
+    def __init__(self, chain_cls, display_name: str):
+        super().__init__(chain_cls, display_name, [])
 
-        if chain_name == 'waitrose':
-            self.start_time = Waitrose.slot_start_time
-            self.end_time = Waitrose.slot_end_time
-        elif chain_name == 'tesco':
-            self.start_time = Tesco.slot_start_time
-            self.end_time = Tesco.slot_end_time
-        else:
-            self.start_time = datetime.time(7, 00, 00)
-            self.end_time = datetime.time(22, 00, 00)
+        self.start_time = chain_cls.slot_start_time
+        self.end_time = chain_cls.slot_end_time
 
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}')
@@ -33,7 +26,7 @@ class FilterDayMenu(Menu):
 
         # 1. create filter day of week
         for wd in range(7):
-            m_filter_day = Menu(self.chain_name, f'{str(WEEKDAYS(wd).name).capitalize()}', [])
+            m_filter_day = Menu(self.chain_cls, f'{str(WEEKDAYS(wd).name).capitalize()}', [])
             m_filter_day.parent = self
             # append m_day as a child to Show available slots menu
             self.children.append(m_filter_day)
@@ -41,23 +34,23 @@ class FilterDayMenu(Menu):
 
             # 2. create slots for the day of the week
             for st in range(self.start_time.hour, self.end_time.hour):
-                wd_filters = getattr(Autobook.chat_autobook[message.chat_id][self.chain_name], WEEKDAYS(wd).name)
+                wd_filters = getattr(Autobook.chat_autobook[message.chat_id][self.chain_cls.name], WEEKDAYS(wd).name)
                 slot_name = "{:02d}:00-{:02d}:00".format(st, st+1)
                 if slot_name in wd_filters:
                     slot_prefix = ENABLED_EMOJI
                 else:
                     slot_prefix = DISABLED_EMOJI
-                m_filter_slot = FilterTimeMenu(self.chain_name, "{} {}".format(slot_prefix, slot_name))
+                m_filter_slot = FilterTimeMenu(self.chain_cls, "{} {}".format(slot_prefix, slot_name))
                 m_filter_slot.parent = self.children[-1]
                 # append m_slot as a child to m_day menu
                 self.children[-1].children.append(m_filter_slot)
                 m_filter_slot.register(self.bot)
 
-        if Autobook.chat_autobook[message.chat_id][self.chain_name].autobook:
+        if Autobook.chat_autobook[message.chat_id][self.chain_cls.name].autobook:
             enabled_prefix = ENABLED_EMOJI
         else:
             enabled_prefix = DISABLED_EMOJI
-        m_auto_booking = EnabledMenu(self.chain_name, f'{enabled_prefix} Enabled')
+        m_auto_booking = EnabledMenu(self.chain_cls, f'{enabled_prefix} Enabled')
         m_auto_booking.parent = self
         # append m_day as a child to Show available slots menu
         self.children.append(m_auto_booking)
@@ -67,17 +60,17 @@ class FilterDayMenu(Menu):
         message.edit_text(self.display_name, reply_markup=self._keyboard(self.children))
 
     def init_autobook(self, message):
-        if message.chat_id not in Autobook.chat_autobook or self.chain_name not in Autobook.chat_autobook[message.chat_id]:
-            Autobook.chat_autobook[message.chat_id] = {self.chain_name: Autobook(message.chat_id, self.chain_name)}
+        if message.chat_id not in Autobook.chat_autobook or self.chain_cls.name not in Autobook.chat_autobook[message.chat_id]:
+            Autobook.chat_autobook[message.chat_id] = {self.chain_cls.name: Autobook(message.chat_id, self.chain_cls.name)}
 
 
 class FilterTimeMenu(Menu):
-    def __init__(self, chain_name: str, display_name: str, alignment_len: int = 40):
-        super().__init__(chain_name, display_name, [], alignment_len)
+    def __init__(self, chain_cls, display_name: str, alignment_len: int = 40):
+        super().__init__(chain_cls, display_name, [], alignment_len)
 
     def display(self, message):
         wd = self.parent.display_name.lower()
-        wd_filters = getattr(Autobook.chat_autobook[message.chat_id][self.chain_name], wd)
+        wd_filters = getattr(Autobook.chat_autobook[message.chat_id][self.chain_cls.name], wd)
         if self.display_name.startswith(ENABLED_EMOJI):
             # remove
             wd_filters.remove(self.display_name[2:])
@@ -86,21 +79,21 @@ class FilterTimeMenu(Menu):
             # add
             wd_filters.append(self.display_name[2:])
             self.display_name = self.display_name.replace(DISABLED_EMOJI, ENABLED_EMOJI)
-        setattr(Autobook.chat_autobook[message.chat_id][self.chain_name], wd, wd_filters)
+        setattr(Autobook.chat_autobook[message.chat_id][self.chain_cls.name], wd, wd_filters)
         self.parent.display(message)
 
 
 class EnabledMenu(Menu):
-    def __init__(self, chain_name: str, display_name: str, alignment_len: int = 10):
-        super().__init__(chain_name, display_name, [], alignment_len)
+    def __init__(self, chain_cls, display_name: str, alignment_len: int = 10):
+        super().__init__(chain_cls, display_name, [], alignment_len)
 
     def display(self, message):
         if self.display_name.startswith(ENABLED_EMOJI):
             # remove
-            Autobook.chat_autobook[message.chat_id][self.chain_name].autobook = False
+            Autobook.chat_autobook[message.chat_id][self.chain_cls.name].autobook = False
             self.display_name = self.display_name.replace(ENABLED_EMOJI, DISABLED_EMOJI)
         else:
             # add
-            Autobook.chat_autobook[message.chat_id][self.chain_name].autobook = True
+            Autobook.chat_autobook[message.chat_id][self.chain_cls.name].autobook = True
             self.display_name = self.display_name.replace(DISABLED_EMOJI, ENABLED_EMOJI)
         self.parent.display(message)

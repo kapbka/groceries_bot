@@ -10,8 +10,8 @@ from app.waitrose.waitrose import Waitrose
 
 
 class Menu:
-    def __init__(self, chain_name: str, display_name: str, children: list, alignment_len: int = 22):
-        self.chain_name = chain_name
+    def __init__(self, chain_cls, display_name: str, children: list, alignment_len: int = 22):
+        self.chain_cls = chain_cls
         self.name = str(uuid.uuid4())
         self.display_name = display_name
         self.parent = None
