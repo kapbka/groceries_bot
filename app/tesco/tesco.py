@@ -27,10 +27,9 @@ class Tesco:
     slot_end_time = datetime.time(23, 00, 00)
     slot_interval_hrs = CHAIN_INTERVAL_HRS
 
-    def __init__(self, login, password, cvv):
+    def __init__(self, login, password):
         self._login = login
         self._password = password
-        self._cvv = cvv
 
         chrome_options = webdriver.ChromeOptions()
         capabilities = DesiredCapabilities.CHROME.copy()
@@ -152,7 +151,10 @@ class Tesco:
         button = self.driver.find_elements_by_class_name('add-all-button')[0]
         button.click()
 
-    def checkout(self):
+    def checkout(self, cvv):
+        if self.is_basket_empty():
+            self.add_last_order_to_basket()
+
         while not self.driver.current_url.endswith('review-trolley'):
             self._load('groceries/en-GB/checkout/review-trolley')
         while self.driver.current_url.find('payment?') == -1:
@@ -161,7 +163,7 @@ class Tesco:
         self.driver.switch_to.frame('bounty-iframe')
 
         inp = self.driver.find_element_by_class_name('cvc-input')
-        inp.send_keys(str(self._cvv))
+        inp.send_keys(str(cvv))
 
         button = self.driver.find_element_by_class_name('confirm-button')
         button.click()

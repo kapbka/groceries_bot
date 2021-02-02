@@ -23,7 +23,6 @@ class GroceriesBot:
         self.bot = self.updater.bot
         self.reply_menus = {}
 
-        self.m_slots = {}
         self.m_settings = {}
 
         self.last_message = None
@@ -34,15 +33,16 @@ class GroceriesBot:
         chain_login_menus = []
         chain_menus = []
         for chain_cls in self.chains:
-            self.m_slots[chain_cls.name] = SlotDayMenu(chain_cls, 'All available slot days')
+            m_book_checkout_slots = SlotDayMenu(chain_cls, 'All available slot days', make_checkout=True)
+            m_book_slots = SlotDayMenu(chain_cls, 'All available slot days')
 
             m_auto_booking = FilterDayMenu(chain_cls, 'Autobooking')
             m_book_slot_and_checkout = CvvMenu(chain_cls, self, 'Book slot and checkout',
                                                f'{chain_cls.display_name}/Book slot and checkout: Please enter your cvv',
-                                               self.m_slots[chain_cls.name])
+                                               m_book_checkout_slots)
             m_book_slot = LoginMenu(chain_cls, self, 'Book slot', f'{chain_cls.display_name}/Book slot: Please enter your login',
                                     PasswordMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}/Book slot: Please enter your password',
-                                                 self.m_slots[chain_cls.name]))
+                                                 m_book_slots))
             m_checkout = CvvMenu(chain_cls, self, 'Checkout', f'{chain_cls.display_name}/Checkout: Please enter your cvv', None)
 
             m_settings_password = PasswordMenu(chain_cls, self, 'Password', f'{chain_cls.display_name}/Settings: Please enter your password', None)
@@ -58,7 +58,8 @@ class GroceriesBot:
             m_chain_login = LoginMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}: Please enter your login',
                                       PasswordMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}: Please enter your password',
                                                    m_chain))
-            self.m_slots[chain_cls.name].parent = m_chain_login
+            m_book_checkout_slots.parent = m_chain_login
+            m_book_slots.parent = m_chain_login
 
             chain_menus.append(m_chain)
             chain_login_menus.append(m_chain_login)

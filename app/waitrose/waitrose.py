@@ -17,11 +17,10 @@ class Waitrose:
     slot_end_time = datetime.time(22, 00, 00)
     slot_interval_hrs = CHAIN_INTERVAL_HRS
 
-    def __init__(self, login, password, cvv=None):
+    def __init__(self, login, password):
         self.login = login
         self.password = password
         self.slot_filter = None
-        self.cvv = cvv
         self.session = Session(login, password)
 
     def get_slots(self, slot_type='DELIVERY'):
@@ -41,7 +40,7 @@ class Waitrose:
         if not start_date and not end_date:
             start_date, end_date = slot.book_first_available_slot()
 
-    def checkout_trolley(self):
+    def checkout(self, cvv):
         # if a trolley is empty will try to fill it in with items from the last order
         if self.session.is_trolley_empty():
             self.session.merge_last_order_to_trolley()
@@ -49,7 +48,7 @@ class Waitrose:
         # if cvv is passed proceed with checkout not to lose the slot
         if self.cvv:
             card_list = self.session.get_payment_card_list()
-            self.session.checkout_trolley(self.session.customerOrderId, card_list[0], self.cvv)
+            self.session.checkout_trolley(self.session.customerOrderId, card_list[0], cvv)
 
     def get_current_slot(self):
         slot = Slot(session=self.session, slot_type='DELIVERY')

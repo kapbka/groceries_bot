@@ -9,8 +9,9 @@ from app.bot.telegram.chat_chain_cache import ChatChainCache
 
 
 class SlotDayMenu(Menu):
-    def __init__(self, chain_cls, display_name: str):
+    def __init__(self, chain_cls, display_name: str, make_checkout=False):
         super().__init__(chain_cls, display_name, [])
+        self.make_checkout = make_checkout
 
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}')
@@ -19,8 +20,7 @@ class SlotDayMenu(Menu):
         chat_id = message.chat_id
         chain = ChatChainCache.create_or_get(chat_id, self.chain_cls,
                                              Creds.chat_creds[chat_id][self.chain_cls.name].login,
-                                             Creds.chat_creds[chat_id][self.chain_cls.name].password,
-                                             Creds.chat_creds[chat_id][self.chain_cls.name].cvv)
+                                             Creds.chat_creds[chat_id][self.chain_cls.name].password)
         slots = chain.get_slots()
 
         # 2. then we register children
@@ -41,7 +41,7 @@ class SlotDayMenu(Menu):
             ss_time = sd
             se_time = sd + timedelta(hours=self.chain_cls.slot_interval_hrs)
             slot_disp_name = "{:02d}:{:02d}-{:02d}:{:02d}".format(ss_time.hour, ss_time.minute, se_time.hour, se_time.minute)
-            m_slot = SlotTimeMenu(self.chain_cls, slot_disp_name, chain, ss_time)
+            m_slot = SlotTimeMenu(self.chain_cls, slot_disp_name, chain, ss_time, self.make_checkout)
             m_slot.parent = self.children[-1]
             # append m_slot as a child to m_day menu
             self.children[-1].children.append(m_slot)
@@ -52,12 +52,16 @@ class SlotDayMenu(Menu):
 
 
 class SlotTimeMenu(Menu):
-    def __init__(self, chain_cls, display_name: str, chain, start_datetime: datetime, alignment_len: int = 40):
+    def __init__(self, chain_cls, display_name: str, chain, start_datetime: datetime, make_checkout, alignment_len: int = 40):
         super().__init__(chain_cls, display_name, [], alignment_len)
         self.chain = chain
         self.start_datetime = start_datetime
+        self.make_checkout = make_checkout
 
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}')
-        # slot booking
+
         self.chain.book(self.start_datetime)
+        # if necessary make a checkout
+        if self.make_checkout:
+            self.chain.checkout(Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv)
