@@ -1,6 +1,7 @@
 # Waitrose class
 from app.waitrose.session import Session
 from app.waitrose.slot import Slot
+from app.constants import CHAIN_INTERVAL_HRS
 import datetime
 
 
@@ -9,23 +10,27 @@ class Waitrose:
     name = 'waitrose'
     display_name = 'Waitrose'
 
+    session_expiry_sec = 300
+    slot_expiry_sec = 60
+
     slot_start_time = datetime.time(7, 00, 00)
     slot_end_time = datetime.time(22, 00, 00)
-    slot_interval_hrs = 1
+    slot_interval_hrs = CHAIN_INTERVAL_HRS
 
-    def __init__(self, login, password, slot_filter=None, cvv=None):
+    def __init__(self, login, password, cvv=None):
         self.login = login
         self.password = password
-        self.slot_filter = slot_filter
+        self.slot_filter = None
         self.cvv = cvv
         self.session = Session(login, password)
 
-    def get_all_available_slots(self, slot_type='DELIVERY'):
+    def get_slots(self, slot_type='DELIVERY'):
         return Slot(session=self.session, slot_type=slot_type).get_available_slots()
 
-    def book_slot_default_address(self, slot_type, start_datetime, end_datetime):
-        slot = Slot(session=self.session, slot_type=slot_type)
-        return slot.book_slot_default_address(slot_type, start_datetime, end_datetime)
+    def book(self, start_datetime):
+        slot = Slot(session=self.session, slot_type='DELIVERY')
+        return slot.book_slot_default_address('DELIVERY', start_datetime,
+                                              start_datetime + datetime.timedelta(hours=self.slot_interval_hrs))
 
     def book_current_or_first_available_slot(self, slot_type='DELIVERY'):
         slot = Slot(session=self.session, slot_type=slot_type)

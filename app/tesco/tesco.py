@@ -8,6 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from urllib.parse import urljoin
 import dateutil.parser
+from app.constants import CHAIN_INTERVAL_HRS
 
 MON, TUE, WED, THU, FRI, SAT, SUN = range(7)
 
@@ -19,9 +20,12 @@ class Tesco:
     name = 'tesco'
     display_name = 'Tesco'
 
+    session_expiry_sec = 300
+    slot_expiry_sec = 60
+
     slot_start_time = datetime.time(8, 00, 00)
     slot_end_time = datetime.time(23, 00, 00)
-    slot_interval_hrs = 1
+    slot_interval_hrs = CHAIN_INTERVAL_HRS
 
     def __init__(self, login, password, cvv):
         self._login = login
@@ -37,9 +41,9 @@ class Tesco:
                                            options=chrome_options)
         else:
             self.driver = webdriver.Chrome(options=chrome_options)
+        self.login()
 
     def __enter__(self):
-        self.login()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -92,7 +96,7 @@ class Tesco:
                 return None
             return res
 
-    def get_slots(self, filters):
+    def get_slots(self, filters=None):
         self._load('groceries/en-GB/slots/delivery')
 
         available_weeks = self.driver.find_elements_by_class_name("slot-selector--week-tabheader-link")
@@ -118,15 +122,18 @@ class Tesco:
 
                 slot_time = dateutil.parser.isoparse(parts[1])
 
-                for day, time_begin, time_end in filters:
-                    if day == slot_time.weekday() and time_begin <= slot_time.time() <= time_end:
-                        slots_data.append(slot_time)
+                if filters:
+                    for day, time_begin, time_end in filters:
+                        if day == slot_time.weekday() and time_begin <= slot_time.time() <= time_end:
+                            slots_data.append(slot_time)
+                else:
+                    slots_data.append(slot_time)
 
         return [x for x in sorted(slots_data)]
 
     def book(self, slot_begin: datetime.datetime):
         # generate slot id
-        slot_end = slot_begin + datetime.timedelta(hours=1)
+        slot_end = slot_begin + datetime.timedelta(hours=self.slot_interval_hrs)
         time_format = "%Y-%m-%dT%H:%M:%SZ"
         slot_id = f"grid_{slot_begin.strftime(time_format)}_{slot_end.strftime(time_format)}"
 
