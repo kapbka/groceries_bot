@@ -148,7 +148,8 @@ class Tesco:
 
     def add_last_order_to_basket(self):
         self._load('groceries/en-GB/orders')
-        button = self.driver.find_elements_by_class_name('add-all-button')[0]
+        text = self.driver.find_element_by_xpath("//span[text()='Add all to basket']")
+        button = text.find_element_by_xpath("../..")
         button.click()
 
     def checkout(self, cvv):
@@ -184,7 +185,7 @@ if __name__ == '__main__':
 
     filters = [(FRI, datetime.time(16, 00, 00), datetime.time(17, 00, 00))]
 
-    with Tesco(sys.argv[1], sys.argv[2], int(sys.argv[3])) as tesco:
+    with Tesco(sys.argv[1], sys.argv[2]) as tesco:
         current = tesco.get_current_slot()
         logging.info(f"Current slot: {current}")
         if not current:
@@ -202,5 +203,5 @@ if __name__ == '__main__':
         if tesco.is_basket_empty():
             tesco.add_last_order_to_basket()
 
-        order_id = tesco.checkout()
+        order_id = tesco.checkout(int(sys.argv[3]))
         logging.info(f"Checkout succeeded, order number: {order_id}")
