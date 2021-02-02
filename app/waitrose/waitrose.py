@@ -2,7 +2,10 @@
 from app.waitrose.session import Session
 from app.waitrose.slot import Slot
 from app.constants import CHAIN_INTERVAL_HRS
+from app.timed_lru_cache import timed_lru_cache
 import datetime
+
+SLOT_EXPIRY_SEC = 60
 
 
 class Waitrose:
@@ -11,7 +14,6 @@ class Waitrose:
     display_name = 'Waitrose'
 
     session_expiry_sec = 300
-    slot_expiry_sec = 60
 
     slot_start_time = datetime.time(7, 00, 00)
     slot_end_time = datetime.time(22, 00, 00)
@@ -23,6 +25,7 @@ class Waitrose:
         self.slot_filter = None
         self.session = Session(login, password)
 
+    @timed_lru_cache(SLOT_EXPIRY_SEC)
     def get_slots(self, slot_type='DELIVERY'):
         return Slot(session=self.session, slot_type=slot_type).get_available_slots()
 

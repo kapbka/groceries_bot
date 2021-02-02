@@ -23,8 +23,6 @@ class GroceriesBot:
         self.bot = self.updater.bot
         self.reply_menus = {}
 
-        self.m_settings = {}
-
         self.last_message = None
 
     def create_menu(self, update: Update, context: CallbackContext):
@@ -43,18 +41,19 @@ class GroceriesBot:
             m_book_slot = LoginMenu(chain_cls, self, 'Book slot', f'{chain_cls.display_name}/Book slot: Please enter your login',
                                     PasswordMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}/Book slot: Please enter your password',
                                                  m_book_slots))
-            m_checkout = CvvMenu(chain_cls, self, 'Checkout', f'{chain_cls.display_name}/Checkout: Please enter your cvv', None)
+            m_checkout = CvvMenu(chain_cls, self, 'Checkout', f'{chain_cls.display_name}/Checkout: Please enter your cvv',
+                                 SlotDayMenu(chain_cls, 'All available slot days', make_checkout=True))
 
             m_settings_password = PasswordMenu(chain_cls, self, 'Password', f'{chain_cls.display_name}/Settings: Please enter your password', None)
             m_settings_login = LoginMenu(chain_cls, self, 'Login', f'{chain_cls.display_name}/Settings: Please enter your login', m_settings_password)
             m_settings_payment = CvvMenu(chain_cls, self, 'Payment details',
                                          f'{chain_cls.display_name}/Settings: Please enter cvv of a payment card linked to your "{chain_cls.display_name}" profile', None)
-            self.m_settings[chain_cls.name] = Menu(chain_cls, 'Settings', [m_settings_login, m_settings_payment])
+            m_settings = Menu(chain_cls, 'Settings', [m_settings_login, m_settings_payment])
             # update next menu once password or cvv entered
-            m_settings_password.next_menu = self.m_settings[chain_cls.name]
-            m_settings_payment.next_menu = self.m_settings[chain_cls.name]
+            m_settings_password.next_menu = m_settings
+            m_settings_payment.next_menu = m_settings
 
-            m_chain = Menu(chain_cls, chain_cls.display_name, [m_auto_booking, m_book_slot_and_checkout, m_book_slot, m_checkout, self.m_settings[chain_cls.name]])
+            m_chain = Menu(chain_cls, chain_cls.display_name, [m_auto_booking, m_book_slot_and_checkout, m_book_slot, m_checkout, m_settings])
             m_chain_login = LoginMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}: Please enter your login',
                                       PasswordMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}: Please enter your password',
                                                    m_chain))

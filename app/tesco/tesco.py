@@ -9,8 +9,10 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from urllib.parse import urljoin
 import dateutil.parser
 from app.constants import CHAIN_INTERVAL_HRS
+from app.timed_lru_cache import timed_lru_cache
 
 MON, TUE, WED, THU, FRI, SAT, SUN = range(7)
+SLOT_EXPIRY_SEC = 300
 
 
 class Tesco:
@@ -21,7 +23,6 @@ class Tesco:
     display_name = 'Tesco'
 
     session_expiry_sec = 300
-    slot_expiry_sec = 60
 
     slot_start_time = datetime.time(8, 00, 00)
     slot_end_time = datetime.time(23, 00, 00)
@@ -95,7 +96,9 @@ class Tesco:
                 return None
             return res
 
+    @timed_lru_cache(SLOT_EXPIRY_SEC)
     def get_slots(self, filters=None):
+        logging.debug(f'Getting slots with filters {filters}')
         self._load('groceries/en-GB/slots/delivery')
 
         available_weeks = self.driver.find_elements_by_class_name("slot-selector--week-tabheader-link")
@@ -155,6 +158,8 @@ class Tesco:
     def checkout(self, cvv):
         if self.is_basket_empty():
             self.add_last_order_to_basket()
+
+        self._load('groceries/en-GB/trolley')
 
         while not self.driver.current_url.endswith('review-trolley'):
             self._load('groceries/en-GB/checkout/review-trolley')

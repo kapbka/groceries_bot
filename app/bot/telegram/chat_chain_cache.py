@@ -15,6 +15,7 @@ class ChatChainCache:
         if (not data['last_access_date'] or data['last_access_date'] +
             timedelta(seconds=chain_cls.session_expiry_sec) < datetime.now()
            ):
+            logging.debug(f'Cache creation {chain_cls.name}')
             data['instance'] = chain_cls(login, password)
 
         data['last_access_date'] = datetime.now()
