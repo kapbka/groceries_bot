@@ -1,11 +1,24 @@
 # Slot Menu classes
 
 import logging
+from telegram import Message
 from datetime import datetime, timedelta
 from app.bot.telegram.creds import Creds
 from app.constants import WEEKDAYS
 from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram.chat_chain_cache import ChatChainCache
+from logging import StreamHandler
+
+
+class ResponseLogger(StreamHandler):
+    def __init__(self, message: Message):
+        StreamHandler.__init__(self)
+        self.message = message
+        self.setLevel(logging.INFO)
+
+    def emit(self, record):
+        txt = self.format(record)
+        self.message.edit_text(self.message.text + ': ' + txt, reply_markup=self.message.reply_markup)
 
 
 class SlotDayMenu(Menu):
@@ -21,6 +34,12 @@ class SlotDayMenu(Menu):
         chain = ChatChainCache.create_or_get(chat_id, self.chain_cls,
                                              Creds.chat_creds[chat_id][self.chain_cls.name].login,
                                              Creds.chat_creds[chat_id][self.chain_cls.name].password)
+
+        log = logging.getLogger('telegram')
+        log.setLevel(logging.INFO)
+        ch = ResponseLogger(message)
+        ch.setFormatter(logging.Formatter('%(message)s'))
+        log.addHandler(ch)
         slots = chain.get_slots()
 
         # 2. then we register children

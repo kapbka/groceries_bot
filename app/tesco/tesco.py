@@ -15,6 +15,9 @@ MON, TUE, WED, THU, FRI, SAT, SUN = range(7)
 SLOT_EXPIRY_SEC = 300
 
 
+log = logging.getLogger('telegram')
+
+
 class Tesco:
 
     BASE_URL = 'https://www.tesco.com/'
@@ -98,7 +101,7 @@ class Tesco:
 
     @timed_lru_cache(SLOT_EXPIRY_SEC)
     def get_slots(self, filters=None):
-        logging.debug(f'Getting slots with filters {filters}')
+        logging.info(f'Getting slots with filters "{filters or "no filters"}"')
         self._load('groceries/en-GB/slots/delivery')
 
         available_weeks = self.driver.find_elements_by_class_name("slot-selector--week-tabheader-link")
@@ -109,6 +112,8 @@ class Tesco:
         slots_data = list()
 
         for week_href in weeks:
+            logging.info(f'Fetching slots for {week_href.replace("?slotGroup=1", "").split("/")[-1]}')
+            log.info(f'Fetching slots for {week_href.replace("?slotGroup=1", "").split("/")[-1]}')
             self.driver.get(week_href)
 
             slots = self.driver.find_elements_by_class_name('slot-grid--item')
