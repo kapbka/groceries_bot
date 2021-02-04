@@ -95,4 +95,5 @@ class Session:
 
         res = requests.put(constants.CHECKOUT_URL.format(self.customerOrderId, card_id),
                            headers=self.headers, json=param).json()
+        # TODO: check returned code and raise an exception if necessary
         return res['code']

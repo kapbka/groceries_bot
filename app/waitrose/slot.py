@@ -146,7 +146,6 @@ class Slot:
         current_slot = self.session.execute(constants.CURRENT_SLOT_QUERY, variables)
 
         try:
-            return current_slot['data']['currentSlot']['startDateTime'], \
-                   current_slot['data']['currentSlot']['endDateTime']
+            return current_slot['data']['currentSlot']['startDateTime']
         except:
-            return None, None
+            return None

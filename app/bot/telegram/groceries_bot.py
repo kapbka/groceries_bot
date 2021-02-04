@@ -6,7 +6,7 @@ from telegram.ext import Updater
 from telegram import Update
 from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackContext
 # bot
-from app.bot.telegram.menu.menu import Menu
+from app.bot.telegram.menu.menu import Menu, MainMenu, CheckoutMenu
 from app.bot.telegram.menu.text_menu import LoginMenu, PasswordMenu, CvvMenu
 from app.bot.telegram.menu.slot_menu import SlotDayMenu
 from app.bot.telegram.menu.filter_menu import FilterDayMenu
@@ -42,7 +42,7 @@ class GroceriesBot:
                                     PasswordMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}/Book slot: Please enter your password',
                                                  m_book_slots))
             m_checkout = CvvMenu(chain_cls, self, 'Checkout', f'{chain_cls.display_name}/Checkout: Please enter your cvv',
-                                 SlotDayMenu(chain_cls, 'All available slot days', make_checkout=True))
+                                 CheckoutMenu(chain_cls, 'Checkout', []))
 
             m_settings_password = PasswordMenu(chain_cls, self, 'Password', f'{chain_cls.display_name}/Settings: Please enter your password', None)
             m_settings_login = LoginMenu(chain_cls, self, 'Login', f'{chain_cls.display_name}/Settings: Please enter your login', m_settings_password)
@@ -53,7 +53,7 @@ class GroceriesBot:
             m_settings_password.next_menu = m_settings
             m_settings_payment.next_menu = m_settings
 
-            m_chain = Menu(chain_cls, chain_cls.display_name, [m_auto_booking, m_book_slot_and_checkout, m_book_slot, m_checkout, m_settings])
+            m_chain = MainMenu(chain_cls, chain_cls.display_name, [m_auto_booking, m_book_slot_and_checkout, m_book_slot, m_checkout, m_settings])
             m_chain_login = LoginMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}: Please enter your login',
                                       PasswordMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}: Please enter your password',
                                                    m_chain))

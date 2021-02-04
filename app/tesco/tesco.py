@@ -127,7 +127,7 @@ class Tesco:
                 grid_time = ref.get_attribute('id')
                 parts = grid_time.split('_')
 
-                slot_time = dateutil.parser.isoparse(parts[1])
+                slot_time = dateutil.parser.isoparse(parts[1]).replace(tzinfo=None)
 
                 if filters:
                     for day, time_begin, time_end in filters:
