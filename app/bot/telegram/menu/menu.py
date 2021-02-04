@@ -12,6 +12,8 @@ from app.bot.telegram.creds import Creds
 
 
 class Menu:
+    is_text_menu = False
+
     def __init__(self, chain_cls, display_name: str, children: list, alignment_len: int = 22):
         self.chain_cls = chain_cls
         self.name = str(uuid.uuid4())

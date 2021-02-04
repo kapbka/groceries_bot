@@ -3,11 +3,12 @@
 import logging
 import datetime
 from app.constants import WEEKDAYS
+from telegram import Message
 from app.bot.telegram.constants import ENABLED_EMOJI, DISABLED_EMOJI
 from app.bot.telegram.menu.menu import Menu
+from app.bot.telegram.menu.text_menu import CvvMenu
 from app.bot.telegram.autobook import Autobook
-from app.waitrose.waitrose import Waitrose
-from app.tesco.tesco import Tesco
+from app.bot.telegram.creds import Creds
 
 
 class FilterDayMenu(Menu):
@@ -17,7 +18,7 @@ class FilterDayMenu(Menu):
         self.start_time = chain_cls.slot_start_time
         self.end_time = chain_cls.slot_end_time
 
-    def display(self, message):
+    def _generate(self, message):
         logging.debug(f'self.display_name {self.display_name}')
 
         self.init_autobook(message)
@@ -56,7 +57,14 @@ class FilterDayMenu(Menu):
         self.children.append(m_auto_booking)
         m_auto_booking.register(self.bot)
 
-        # 3. adding text
+    def create(self, message):
+        self._generate(message)
+
+        message.reply_text(self.display_name, reply_markup=self._keyboard(self.children))
+
+    def display(self, message):
+        self._generate(message)
+
         message.edit_text(self.display_name, reply_markup=self._keyboard(self.children))
 
     def init_autobook(self, message):
@@ -87,13 +95,23 @@ class EnabledMenu(Menu):
     def __init__(self, chain_cls, display_name: str, alignment_len: int = 10):
         super().__init__(chain_cls, display_name, [], alignment_len)
 
-    def display(self, message):
-        if self.display_name.startswith(ENABLED_EMOJI):
-            # remove
-            Autobook.chat_autobook[message.chat_id][self.chain_cls.name].autobook = False
-            self.display_name = self.display_name.replace(ENABLED_EMOJI, DISABLED_EMOJI)
+    def display(self, message: Message):
+        is_cvv = Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv
+
+        Autobook.chat_autobook[message.chat_id][self.chain_cls.name].autobook = \
+            not Autobook.chat_autobook[message.chat_id][self.chain_cls.name].autobook
+
+        if self.display_name.startswith(DISABLED_EMOJI) and not is_cvv:
+            m_cvv = CvvMenu(self.chain_cls, self.bot, 'Enable autobooking',
+                            f'{self.chain_cls.display_name}/Enable autobooking: Please enter your cvv',
+                            self.parent)
+            m_cvv.register(self.bot)
+            m_cvv.parent = self
+            m_cvv.display(message)
+
         else:
-            # add
-            Autobook.chat_autobook[message.chat_id][self.chain_cls.name].autobook = True
-            self.display_name = self.display_name.replace(DISABLED_EMOJI, ENABLED_EMOJI)
-        self.parent.display(message)
+            if self.display_name.startswith(ENABLED_EMOJI):
+                self.display_name = self.display_name.replace(ENABLED_EMOJI, DISABLED_EMOJI)
+            else:
+                self.display_name = self.display_name.replace(DISABLED_EMOJI, ENABLED_EMOJI)
+            self.parent.display(message)

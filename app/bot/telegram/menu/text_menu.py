@@ -6,10 +6,12 @@ from telegram.ext import CallbackQueryHandler
 from app.bot.telegram.helpers import get_message
 from app.bot.telegram.creds import Creds
 from app.bot.telegram.chat_chain_cache import ChatChainCache
-from app.bot.telegram.menu.menu import Menu, MainMenu
+from app.bot.telegram.menu.menu import Menu
 
 
 class TextMenu(Menu):
+    is_text_menu = True
+
     def __init__(self, chain_cls, bot, display_name: str, text_message: str, next_menu: Menu = None):
         super().__init__(chain_cls, display_name, [])
         self.text_message = text_message
@@ -69,7 +71,7 @@ class PasswordMenu(TextMenu):
 
         ChatChainCache.invalidate(message.chat_id, self.chain_cls)
 
-        if type(self.next_menu) in [Menu, MainMenu]:
+        if not self.next_menu.is_text_menu:
             self.next_menu.create(message)
         else:
             self.next_menu.display(message)
@@ -82,7 +84,7 @@ class CvvMenu(TextMenu):
 
         if not is_cvv or self.display_name == 'Payment details':
             msg = self.bot.bot.send_message(message.chat_id, self.text_message, reply_markup=ForceReply())
-            if type(self.parent) in [Menu, MainMenu]:
+            if not self.parent.is_text_menu:
                 message.delete()
         else:
             self.next_menu.display(message)
@@ -90,7 +92,7 @@ class CvvMenu(TextMenu):
     def handle_response(self, message):
         Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv = message.text
 
-        if type(self.next_menu) in [Menu, MainMenu]:
+        if not self.next_menu.is_text_menu:
             self.next_menu.create(message)
         else:
             self.next_menu.display(message)
