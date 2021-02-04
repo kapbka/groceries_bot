@@ -146,6 +146,6 @@ class Slot:
         current_slot = self.session.execute(constants.CURRENT_SLOT_QUERY, variables)
 
         try:
-            return current_slot['data']['currentSlot']['startDateTime']
+            return datetime.strptime(current_slot['data']['currentSlot']['startDateTime'], '%Y-%b-%d %H:%M')
         except:
             return None

@@ -59,6 +59,28 @@ class Menu:
 
         return InlineKeyboardMarkup(res)
 
+    @staticmethod
+    def get_chain_instance(chat_id, chain_cls):
+        return ChatChainCache.create_or_get(chat_id, chain_cls,
+                                            Creds.chat_creds[chat_id][chain_cls.name].login,
+                                            Creds.chat_creds[chat_id][chain_cls.name].password)
+
+
+class MainMenu(Menu):
+    def display(self, message):
+        logging.debug(f'self.display_name {self.display_name}, self.keyboard() {self._keyboard(self.children)}')
+        logging.info(f'Loggining into "{self.display_name.capitalize()} account"')
+
+        chain = self.get_chain_instance(message.chat_id, self.chain_cls)
+
+        new_children = []
+        for c in self.children:
+            # TODO: replace with a class name
+            if c.display_name != 'Checkout' or chain.get_current_slot():
+                new_children.append(c)
+
+        message.edit_text(self.display_name, reply_markup=self._keyboard(new_children))
+
 
 class CheckoutMenu(Menu):
     def register(self, bot):
@@ -68,19 +90,16 @@ class CheckoutMenu(Menu):
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}, self.keyboard() {self._keyboard(self.children)}')
 
-        chain = ChatChainCache.create_or_get(message.chat_id, self.chain_cls,
-                                             Creds.chat_creds[message.chat_id][self.chain_cls.name].login,
-                                             Creds.chat_creds[message.chat_id][self.chain_cls.name].password)
-
+        chain = self.get_chain_instance(message.chat_id, self.chain_cls)
         cur_slot = chain.get_current_slot()
-        cur_slot_end = cur_slot + timedelta(hours=chain.slot_interval_hrs)
 
         if not cur_slot:
             raise ValueError('The booked slot has expired, please book a new slot')
 
+        cur_slot_end = cur_slot + timedelta(hours=chain.slot_interval_hrs)
         slot_disp_name = f"{cur_slot.day}-{cur_slot.strftime('%B')[0:3]} " \
-                          f"{str(WEEKDAYS(cur_slot.weekday()).name).capitalize()} " \
-                          f"{cur_slot.strftime('%H:%M')}-{cur_slot_end.strftime('%H:%M')}"
+                         f"{str(WEEKDAYS(cur_slot.weekday()).name).capitalize()} " \
+                         f"{cur_slot.strftime('%H:%M')}-{cur_slot_end.strftime('%H:%M')}"
 
         m_slot = CheckoutSlotMenu(self.chain_cls, slot_disp_name, [])
         m_slot.register(self.bot)
@@ -93,9 +112,7 @@ class CheckoutSlotMenu(Menu):
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}, self.keyboard() {self._keyboard(self.children)}')
 
-        chain = ChatChainCache.create_or_get(message.chat_id, self.chain_cls,
-                                             Creds.chat_creds[message.chat_id][self.chain_cls.name].login,
-                                             Creds.chat_creds[message.chat_id][self.chain_cls.name].password)
+        chain = self.get_chain_instance(message.chat_id, self.chain_cls)
 
         cur_slot = chain.get_current_slot()
         cur_slot_end = cur_slot + timedelta(hours=chain.slot_interval_hrs)
@@ -111,21 +128,3 @@ class CheckoutSlotMenu(Menu):
                     f"Order number is {res}"
 
         message.edit_text(disp_name, reply_markup=self._keyboard([]))
-
-
-class MainMenu(Menu):
-    def display(self, message):
-        logging.debug(f'self.display_name {self.display_name}, self.keyboard() {self._keyboard(self.children)}')
-        logging.info(f'Loggining into "{self.display_name.capitalize()} account"')
-
-        chain = ChatChainCache.create_or_get(message.chat_id, self.chain_cls,
-                                             Creds.chat_creds[message.chat_id][self.chain_cls.name].login,
-                                             Creds.chat_creds[message.chat_id][self.chain_cls.name].password)
-
-        new_children = []
-        for c in self.children:
-            # TODO: replace with a class name
-            if c.display_name != 'Checkout' or chain.get_current_slot():
-                new_children.append(c)
-
-        message.edit_text(self.display_name, reply_markup=self._keyboard(new_children))

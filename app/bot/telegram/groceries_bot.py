@@ -8,7 +8,7 @@ from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackContex
 # bot
 from app.bot.telegram.menu.menu import Menu, MainMenu, CheckoutMenu
 from app.bot.telegram.menu.text_menu import LoginMenu, PasswordMenu, CvvMenu
-from app.bot.telegram.menu.slot_menu import SlotDayMenu
+from app.bot.telegram.menu.slot_menu import SlotsMenu
 from app.bot.telegram.menu.filter_menu import FilterDayMenu
 from app.bot.telegram.helpers import get_message
 
@@ -31,8 +31,8 @@ class GroceriesBot:
         chain_login_menus = []
         chain_menus = []
         for chain_cls in self.chains:
-            m_book_checkout_slots = SlotDayMenu(chain_cls, 'All available slot days', make_checkout=True)
-            m_book_slots = SlotDayMenu(chain_cls, 'All available slot days')
+            m_book_checkout_slots = SlotsMenu(chain_cls, 'All available slot days', make_checkout=True)
+            m_book_slots = SlotsMenu(chain_cls, 'All available slot days')
 
             m_auto_booking = FilterDayMenu(chain_cls, 'Autobooking')
             m_book_slot_and_checkout = CvvMenu(chain_cls, self, 'Book slot and checkout',

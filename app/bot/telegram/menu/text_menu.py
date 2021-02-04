@@ -5,7 +5,8 @@ from telegram import ForceReply
 from telegram.ext import CallbackQueryHandler
 from app.bot.telegram.helpers import get_message
 from app.bot.telegram.creds import Creds
-from app.bot.telegram.menu.menu import Menu
+from app.bot.telegram.chat_chain_cache import ChatChainCache
+from app.bot.telegram.menu.menu import Menu, MainMenu
 
 
 class TextMenu(Menu):
@@ -66,7 +67,9 @@ class PasswordMenu(TextMenu):
     def handle_response(self, message):
         Creds.chat_creds[message.chat_id][self.chain_cls.name].password = message.text
 
-        if type(self.next_menu) == Menu:
+        ChatChainCache.invalidate(message.chat_id, self.chain_cls)
+
+        if type(self.next_menu) in [Menu, MainMenu]:
             self.next_menu.create(message)
         else:
             self.next_menu.display(message)
@@ -77,9 +80,9 @@ class CvvMenu(TextMenu):
         self.init_creds(message)
         is_cvv = Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv
 
-        if not is_cvv or self.display_name == 'Payment':
+        if not is_cvv or self.display_name == 'Payment details':
             msg = self.bot.bot.send_message(message.chat_id, self.text_message, reply_markup=ForceReply())
-            if type(self.parent) == Menu:
+            if type(self.parent) in [Menu, MainMenu]:
                 message.delete()
         else:
             self.next_menu.display(message)
@@ -87,7 +90,7 @@ class CvvMenu(TextMenu):
     def handle_response(self, message):
         Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv = message.text
 
-        if type(self.next_menu) == Menu:
+        if type(self.next_menu) in [Menu, MainMenu]:
             self.next_menu.create(message)
         else:
             self.next_menu.display(message)

@@ -21,3 +21,10 @@ class ChatChainCache:
         data['last_access_date'] = datetime.now()
 
         return data['instance']
+
+    @staticmethod
+    def invalidate(chat_id, chain_cls):
+        logging.debug(f'Cache invalidation {chain_cls.name}')
+
+        ChatChainCache.instance_cache[chat_id][chain_cls.name]['last_access_date'] = \
+            datetime.now() - timedelta(seconds=chain_cls.session_expiry_sec+1)

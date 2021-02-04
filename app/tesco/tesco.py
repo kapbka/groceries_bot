@@ -179,6 +179,7 @@ class Tesco:
         button = self.driver.find_element_by_class_name('confirm-button')
         button.click()
 
+        # TODO: add exit condition if wrong cvv for example
         while True:
             try:
                 thanks = self.driver.find_element_by_class_name("confirmation-message--thankyou-section")
