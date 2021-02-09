@@ -54,7 +54,7 @@ class Waitrose:
             card_list = self.session.get_payment_card_list()
             # TODO: exception if card_list is empty
             res = self.session.checkout_trolley(self.session.customerOrderId, card_list[0], cvv)
-        return res
+        return str(self.session.customerOrderId)
 
     def get_current_slot(self):
         slot = Slot(session=self.session, slot_type='DELIVERY')

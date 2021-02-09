@@ -120,8 +120,8 @@ class SlotTimeMenu(Menu):
             endings.append('booked')
 
         if self.make_checkout:
-            self.chain.checkout(Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv)
-            endings.append('checked out')
+            res = self.chain.checkout(Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv)
+            endings.append(f'checked out. Order number is {res}')
 
         disp_name = f"Slot {self.start_datetime.day}-{self.start_datetime.strftime('%B')[0:3]} " \
                     f"{str(WEEKDAYS(self.start_datetime.weekday()).name).capitalize()}" \
