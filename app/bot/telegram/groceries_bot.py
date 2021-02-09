@@ -9,7 +9,7 @@ from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackContex
 from app.bot.telegram.menu.menu import Menu, MainMenu, CheckoutMenu
 from app.bot.telegram.menu.text_menu import LoginMenu, PasswordMenu, CvvMenu
 from app.bot.telegram.menu.slot_menu import SlotsMenu
-from app.bot.telegram.menu.filter_menu import FilterDayMenu
+from app.bot.telegram.menu.filter_menu import FilterDaysMenu
 from app.bot.telegram.helpers import get_message
 
 
@@ -34,7 +34,7 @@ class GroceriesBot:
             m_book_checkout_slots = SlotsMenu(chain_cls, 'All available slot days', make_checkout=True)
             m_book_slots = SlotsMenu(chain_cls, 'All available slot days')
 
-            m_auto_booking = FilterDayMenu(chain_cls, 'Autobooking')
+            m_auto_booking = FilterDaysMenu(chain_cls, 'Autobooking')
             m_book_slot_and_checkout = CvvMenu(chain_cls, self, 'Book slot and checkout',
                                                f'{chain_cls.display_name}/Book slot and checkout: Please enter your cvv',
                                                m_book_checkout_slots)
