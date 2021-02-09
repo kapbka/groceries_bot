@@ -7,7 +7,7 @@ from telegram.ext import CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from app.constants import WEEKDAYS
 from app.bot.telegram.helpers import get_message
-from app.bot.telegram.chat_chain_cache import ChatChainCache
+from app.bot.telegram.helpers import get_chain_instance
 from app.bot.telegram.creds import Creds
 
 
@@ -61,19 +61,13 @@ class Menu:
 
         return InlineKeyboardMarkup(res)
 
-    @staticmethod
-    def get_chain_instance(chat_id, chain_cls):
-        return ChatChainCache.create_or_get(chat_id, chain_cls,
-                                            Creds.chat_creds[chat_id][chain_cls.name].login,
-                                            Creds.chat_creds[chat_id][chain_cls.name].password)
-
 
 class MainMenu(Menu):
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}, self.keyboard() {self._keyboard(self.children)}')
         logging.info(f'Loggining into "{self.display_name.capitalize()} account"')
 
-        chain = self.get_chain_instance(message.chat_id, self.chain_cls)
+        chain = get_chain_instance(message.chat_id, self.chain_cls)
 
         new_children = []
         for c in self.children:
@@ -92,7 +86,7 @@ class CheckoutMenu(Menu):
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}, self.keyboard() {self._keyboard(self.children)}')
 
-        chain = self.get_chain_instance(message.chat_id, self.chain_cls)
+        chain = get_chain_instance(message.chat_id, self.chain_cls)
         cur_slot = chain.get_current_slot()
 
         if not cur_slot:
@@ -114,7 +108,7 @@ class CheckoutSlotMenu(Menu):
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}, self.keyboard() {self._keyboard(self.children)}')
 
-        chain = self.get_chain_instance(message.chat_id, self.chain_cls)
+        chain = get_chain_instance(message.chat_id, self.chain_cls)
 
         cur_slot = chain.get_current_slot()
         cur_slot_end = cur_slot + timedelta(hours=chain.slot_interval_hrs)

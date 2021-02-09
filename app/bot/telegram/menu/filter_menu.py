@@ -70,12 +70,12 @@ class FilterDayMenu(Menu):
         children = []
         for st in range(self.start_time.hour, self.end_time.hour):
             wd_filters = getattr(Autobook.chat_autobook[message.chat_id][self.chain_cls.name], WEEKDAYS(self.week_day).name)
-            slot_name = "{:02d}:00-{:02d}:00".format(st, st+1)
-            if slot_name in wd_filters:
+            if st in wd_filters:
                 slot_prefix = ENABLED_EMOJI
             else:
                 slot_prefix = DISABLED_EMOJI
-            m_filter_slot = FilterTimeMenu(self.chain_cls, "{} {}".format(slot_prefix, slot_name), self.week_day)
+            slot_name = "{:02d}:00-{:02d}:00".format(st, st + 1)
+            m_filter_slot = FilterTimeMenu(self.chain_cls, "{} {}".format(slot_prefix, slot_name), self.week_day, st)
             m_filter_slot.parent = self
             m_filter_slot.register(self.bot)
             children.append(m_filter_slot)
@@ -94,21 +94,22 @@ class FilterDayMenu(Menu):
 
 
 class FilterTimeMenu(Menu):
-    def __init__(self, chain_cls, display_name: str, week_day: int, alignment_len: int = 40):
+    def __init__(self, chain_cls, display_name: str, week_day: int, day_time: int, alignment_len: int = 40):
         super().__init__(chain_cls, display_name, [], alignment_len)
 
         self.week_day = week_day
+        self.day_time = day_time
 
     def display(self, message):
         wd = WEEKDAYS(self.week_day).name
         wd_filters = getattr(Autobook.chat_autobook[message.chat_id][self.chain_cls.name], wd)
         if self.display_name.startswith(ENABLED_EMOJI):
             # remove
-            wd_filters.remove(self.display_name[2:])
+            wd_filters.remove(self.day_time)
             self.display_name = self.display_name.replace(ENABLED_EMOJI, DISABLED_EMOJI)
         else:
             # add
-            wd_filters.append(self.display_name[2:])
+            wd_filters.append(self.day_time)
             self.display_name = self.display_name.replace(DISABLED_EMOJI, ENABLED_EMOJI)
         setattr(Autobook.chat_autobook[message.chat_id][self.chain_cls.name], wd, wd_filters)
         self.parent.display(message)

@@ -7,7 +7,7 @@ from app.bot.telegram.constants import ENABLED_EMOJI
 from app.bot.telegram.creds import Creds
 from app.constants import WEEKDAYS
 from app.bot.telegram.menu.menu import Menu
-from app.bot.telegram.chat_chain_cache import ChatChainCache
+from app.bot.telegram.helpers import get_chain_instance
 from logging import StreamHandler
 
 
@@ -32,7 +32,7 @@ class SlotsMenu(Menu):
         logging.debug(f'self.display_name {self.display_name}')
 
         # 1. getting slots
-        chain = self.get_chain_instance(message.chat_id, self.chain_cls)
+        chain = get_chain_instance(message.chat_id, self.chain_cls)
 
         log = logging.getLogger('telegram')
         log.setLevel(logging.INFO)
@@ -70,7 +70,7 @@ class SlotDayMenu(Menu):
         logging.debug(f'self.display_name {self.display_name}')
 
         # 1. getting slots
-        chain = self.get_chain_instance(message.chat_id, self.chain_cls)
+        chain = get_chain_instance(message.chat_id, self.chain_cls)
 
         log = logging.getLogger('telegram')
         log.setLevel(logging.INFO)
