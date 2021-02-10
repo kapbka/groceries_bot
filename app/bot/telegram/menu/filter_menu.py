@@ -2,6 +2,7 @@
 
 import logging
 import datetime
+from telegram.ext import CallbackQueryHandler
 from app.constants import WEEKDAYS
 from telegram import Message
 from app.bot.telegram.constants import ENABLED_EMOJI, DISABLED_EMOJI
@@ -9,6 +10,7 @@ from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram.menu.text_menu import CvvMenu
 from app.bot.telegram.autobook import Autobook
 from app.bot.telegram.creds import Creds
+from app.bot.telegram.helpers import get_message
 
 
 class FilterDaysMenu(Menu):
@@ -28,7 +30,13 @@ class FilterDaysMenu(Menu):
             m_filter_day.register(self.bot)
             children.append(m_filter_day)
 
-        # 2. autobooking enabled menu
+        # 2. interval menu
+        m_interval = IntervalMenu(self.chain_cls, f'Minimal order interval (up to {Autobook.max_autobook_interval} days)')
+        m_interval.parent = self
+        m_interval.register(self.bot)
+        children.append(m_interval)
+
+        # 3. autobooking enabled menu
         if Autobook.chat_autobook[message.chat_id][self.chain_cls.name].autobook:
             enabled_prefix = ENABLED_EMOJI
         else:
@@ -138,3 +146,34 @@ class EnabledMenu(Menu):
             else:
                 self.display_name = self.display_name.replace(DISABLED_EMOJI, ENABLED_EMOJI)
             self.parent.display(message)
+
+
+class IntervalMenu(Menu):
+    def __init__(self, chain_cls, display_name: str):
+        super().__init__(chain_cls, display_name, [])
+
+    def _increment(self, update, callback):
+        message = get_message(update)
+        Autobook.chat_autobook[message.chat_id][self.chain_cls.name].interval = \
+            min(Autobook.chat_autobook[message.chat_id][self.chain_cls.name].interval + 1,
+                Autobook.max_autobook_interval)
+        self.display(message)
+
+    def _decrement(self, update, callback):
+        message = get_message(update)
+        Autobook.chat_autobook[message.chat_id][self.chain_cls.name].interval = \
+            max(Autobook.chat_autobook[message.chat_id][self.chain_cls.name].interval - 1,
+                Autobook.min_autobook_interval)
+        self.display(message)
+
+    def display(self, message):
+        m_down_interval = Menu(self.chain_cls, '<', [])
+        m_interval_val = Menu(self.chain_cls,
+                              str(Autobook.chat_autobook[message.chat_id][self.chain_cls.name].interval),
+                              [])
+        m_up_interval = Menu(self.chain_cls, '>', [])
+
+        self.bot.updater.dispatcher.add_handler(CallbackQueryHandler(self._decrement, pattern=m_down_interval.name))
+        self.bot.updater.dispatcher.add_handler(CallbackQueryHandler(self._increment, pattern=m_up_interval.name))
+
+        message.edit_text(self.display_name, reply_markup=self._keyboard([m_down_interval, m_interval_val, m_up_interval]))
