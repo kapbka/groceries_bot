@@ -2,6 +2,7 @@ import requests
 from python_graphql_client import GraphqlClient
 from app.waitrose import constants
 import logging
+from datetime import datetime
 
 
 class Session:
@@ -41,6 +42,10 @@ class Session:
     def get_order_dict(self):
         r = requests.get(constants.ORDER_LIST_URL, headers=self.headers).json()
         return {order['customerOrderId']: order for order in r['content']}
+
+    def get_last_order_date(self):
+        r = requests.get(constants.ORDER_LIST_URL, headers=self.headers).json()
+        return datetime.strptime(r['content'][0]['lastUpdated'], '%Y-%m-%dT%H:%M:%S.%fZ').date() if r['content'] else None
 
     def merge_last_order_to_trolley(self):
         try:

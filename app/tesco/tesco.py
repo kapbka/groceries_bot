@@ -182,12 +182,15 @@ class Tesco:
         # TODO: add exit condition if wrong cvv for example
         while True:
             try:
-                thanks = self.driver.find_element_by_class_name("confirmation-message--thankyou-section")
-                text = thanks.find_element_by_tag_name('p').get_attribute('innerHTML')
-                return re.match(r"[^\d]+(\d{4}-\d{4}-\d{3})", text).group(1)
+                text = self.driver.find_element_by_xpath("//*[contains(text(), 'Your order number is')]")
+                logging.info(f"Order text: '{text.text}'")
+                return re.match(r"[^\d]+(\d{4}-\d{4}-\d{3})", text.text).group(1)
             except:
                 logging.info("Waiting for payment confirmation")
                 time.sleep(1)
+
+    def get_last_order_date(self):
+        pass
 
 
 if __name__ == '__main__':

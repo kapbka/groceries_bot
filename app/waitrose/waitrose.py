@@ -59,3 +59,6 @@ class Waitrose:
     def get_current_slot(self):
         slot = Slot(session=self.session, slot_type='DELIVERY')
         return slot.get_current_slot()
+
+    def get_last_order_date(self):
+        return self.session.get_last_order()
