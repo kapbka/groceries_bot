@@ -2,13 +2,12 @@
 
 import uuid
 import logging
-from datetime import datetime, timedelta
 from telegram.ext import CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from app.constants import WEEKDAYS
 from app.bot.telegram.helpers import get_message
-from app.bot.telegram.helpers import get_chain_instance
+from app.bot.telegram.helpers import get_chain_instance, get_pretty_slot_name
 from app.bot.telegram.creds import Creds
+from app.bot.telegram import constants
 
 
 class Menu:
@@ -57,7 +56,7 @@ class Menu:
         res.append(sub_res)
 
         if self.parent:
-            res.append([InlineKeyboardButton('Back to ' + self.parent.display_name, callback_data=self.parent.name)])
+            res.append([InlineKeyboardButton(f'{constants.S_BACK_TO} {self.parent.display_name}', callback_data=self.parent.name)])
 
         return InlineKeyboardMarkup(res)
 
@@ -71,8 +70,7 @@ class MainMenu(Menu):
 
         new_children = []
         for c in self.children:
-            # TODO: replace with a class name
-            if c.display_name != 'Checkout' or chain.get_current_slot():
+            if c.display_name != constants.M_CHECKOUT or chain.get_current_slot():
                 new_children.append(c)
 
         message.edit_text(self.display_name, reply_markup=self._keyboard(new_children))
@@ -90,14 +88,9 @@ class CheckoutMenu(Menu):
         cur_slot = chain.get_current_slot()
 
         if not cur_slot:
-            raise ValueError('The booked slot has expired, please book a new slot')
+            raise ValueError(constants.E_SLOT_EXPIRED)
 
-        cur_slot_end = cur_slot + timedelta(hours=chain.slot_interval_hrs)
-        slot_disp_name = f"{cur_slot.day}-{cur_slot.strftime('%B')[0:3]} " \
-                         f"{str(WEEKDAYS(cur_slot.weekday()).name).capitalize()} " \
-                         f"{cur_slot.strftime('%H:%M')}-{cur_slot_end.strftime('%H:%M')}"
-
-        m_slot = CheckoutSlotMenu(self.chain_cls, slot_disp_name, [])
+        m_slot = CheckoutSlotMenu(self.chain_cls, get_pretty_slot_name(cur_slot, self.chain_cls), [])
         m_slot.register(self.bot)
         m_slot.parent = self.parent
 
@@ -109,18 +102,12 @@ class CheckoutSlotMenu(Menu):
         logging.debug(f'self.display_name {self.display_name}, self.keyboard() {self._keyboard(self.children)}')
 
         chain = get_chain_instance(message.chat_id, self.chain_cls)
-
         cur_slot = chain.get_current_slot()
-        cur_slot_end = cur_slot + timedelta(hours=chain.slot_interval_hrs)
 
         if not cur_slot:
-            raise ValueError('The booked slot has expired, please book a new slot')
+            raise ValueError(constants.E_SLOT_EXPIRED)
 
         res = chain.checkout(Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv)
 
-        disp_name = f"Slot {cur_slot.day}-{cur_slot.strftime('%B')[0:3]} " \
-                    f"{str(WEEKDAYS(cur_slot.weekday()).name).capitalize()} " \
-                    f"{cur_slot.strftime('%H:%M')}-{cur_slot_end.strftime('%H:%M')} is checked out. " \
-                    f"Order number is {res}"
-
+        disp_name = f"Slot {self.display_name} is {constants.S_CHECKED_OUT}. {constants.S_ORDER_NUMBER} {res}"
         message.edit_text(disp_name, reply_markup=self._keyboard([]))

@@ -1,7 +1,6 @@
 # Filter Menu classes
 
 import logging
-import datetime
 from telegram.ext import CallbackQueryHandler
 from app.constants import WEEKDAYS
 from telegram import Message
@@ -10,7 +9,8 @@ from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram.menu.text_menu import CvvMenu
 from app.bot.telegram.autobook import Autobook
 from app.bot.telegram.creds import Creds
-from app.bot.telegram.helpers import get_message
+from app.bot.telegram.helpers import get_message, get_pretty_filter_slot_time_name
+from app.bot.telegram import constants
 
 
 class FilterDaysMenu(Menu):
@@ -31,17 +31,17 @@ class FilterDaysMenu(Menu):
             children.append(m_filter_day)
 
         # 2. interval menu
-        m_interval = IntervalMenu(self.chain_cls, f'Minimal order interval (up to {Autobook.max_autobook_interval} days)')
+        m_interval = IntervalMenu(self.chain_cls, f'{constants.M_MIN_ORDER_INTERVAL} (up to {Autobook.max_autobook_interval} days)')
         m_interval.parent = self
         m_interval.register(self.bot)
         children.append(m_interval)
 
-        # 3. autobooking enabled menu
+        # 3. enable autobooking menu
         if Autobook.chat_autobook[message.chat_id][self.chain_cls.name].autobook:
             enabled_prefix = ENABLED_EMOJI
         else:
             enabled_prefix = DISABLED_EMOJI
-        m_auto_booking = EnabledMenu(self.chain_cls, f'{enabled_prefix} Enabled')
+        m_auto_booking = EnabledMenu(self.chain_cls, f'{enabled_prefix} {constants.M_ENABLED}')
         m_auto_booking.parent = self
         m_auto_booking.register(self.bot)
         children.append(m_auto_booking)
@@ -82,8 +82,8 @@ class FilterDayMenu(Menu):
                 slot_prefix = ENABLED_EMOJI
             else:
                 slot_prefix = DISABLED_EMOJI
-            slot_name = "{:02d}:00-{:02d}:00".format(st, st + 1)
-            m_filter_slot = FilterTimeMenu(self.chain_cls, "{} {}".format(slot_prefix, slot_name), self.week_day, st)
+            slot_name = f'{slot_prefix} {get_pretty_filter_slot_time_name(st, self.chain_cls)}'
+            m_filter_slot = FilterTimeMenu(self.chain_cls, slot_name, self.week_day, st)
             m_filter_slot.parent = self
             m_filter_slot.register(self.bot)
             children.append(m_filter_slot)
@@ -134,8 +134,8 @@ class EnabledMenu(Menu):
             not Autobook.chat_autobook[message.chat_id][self.chain_cls.name].autobook
 
         if self.display_name.startswith(DISABLED_EMOJI) and not is_cvv:
-            m_cvv = CvvMenu(self.chain_cls, self.bot, 'Enable autobooking',
-                            f'{self.chain_cls.display_name}/Enable autobooking: Please enter your cvv')
+            m_cvv = CvvMenu(self.chain_cls, self.bot, constants.M_ENABLE_AUTOBOOKING,
+                            f'{self.chain_cls.display_name}/{constants.M_ENABLE_AUTOBOOKING}: {constants.S_CVV}')
             m_cvv.register(self.bot)
             m_cvv.parent = self
             m_cvv.next_menu = self.parent
@@ -167,11 +167,11 @@ class IntervalMenu(Menu):
         self.display(message)
 
     def display(self, message):
-        m_down_interval = Menu(self.chain_cls, '<', [])
+        m_down_interval = Menu(self.chain_cls, constants.M_DECREASE, [])
         m_interval_val = Menu(self.chain_cls,
                               str(Autobook.chat_autobook[message.chat_id][self.chain_cls.name].interval),
                               [])
-        m_up_interval = Menu(self.chain_cls, '>', [])
+        m_up_interval = Menu(self.chain_cls, constants.M_INCREASE, [])
 
         self.bot.updater.dispatcher.add_handler(CallbackQueryHandler(self._decrement, pattern=m_down_interval.name))
         self.bot.updater.dispatcher.add_handler(CallbackQueryHandler(self._increment, pattern=m_up_interval.name))

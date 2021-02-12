@@ -11,6 +11,7 @@ from app.bot.telegram.menu.text_menu import LoginMenu, PasswordMenu, CvvMenu
 from app.bot.telegram.menu.slot_menu import SlotsMenu
 from app.bot.telegram.menu.filter_menu import FilterDaysMenu
 from app.bot.telegram.helpers import get_message
+from app.bot.telegram import constants
 
 
 class GroceriesBot:
@@ -31,31 +32,31 @@ class GroceriesBot:
         chain_login_menus = []
         chain_menus = []
         for chain_cls in self.chains:
-            m_book_checkout_slots = SlotsMenu(chain_cls, 'All available slot days', make_checkout=True)
-            m_book_slots = SlotsMenu(chain_cls, 'All available slot days')
+            m_book_checkout_slots = SlotsMenu(chain_cls, constants.M_AVAILABLE_SLOTS, make_checkout=True)
+            m_book_slots = SlotsMenu(chain_cls, constants.M_AVAILABLE_SLOTS)
 
-            m_auto_booking = FilterDaysMenu(chain_cls, 'Autobooking')
-            m_book_slot_and_checkout = CvvMenu(chain_cls, self, 'Book slot and checkout',
-                                               f'{chain_cls.display_name}/Book slot and checkout: Please enter your cvv',
-                                               m_book_checkout_slots)
-            m_book_slot = LoginMenu(chain_cls, self, 'Book slot', f'{chain_cls.display_name}/Book slot: Please enter your login',
-                                    PasswordMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}/Book slot: Please enter your password',
-                                                 m_book_slots))
-            m_checkout = CvvMenu(chain_cls, self, 'Checkout', f'{chain_cls.display_name}/Checkout: Please enter your cvv',
-                                 CheckoutMenu(chain_cls, 'Checkout', []))
+            m_auto_booking = FilterDaysMenu(chain_cls, constants.M_AUTOBOOKING)
+            m_book_and_checkout = CvvMenu(chain_cls, self, constants.M_BOOK_AND_CHECKOUT,
+                                          f'{chain_cls.display_name}/{constants.M_BOOK_AND_CHECKOUT}: {constants.S_CVV}',
+                                          m_book_checkout_slots)
+            m_book = LoginMenu(chain_cls, self, constants.M_BOOK, f'{chain_cls.display_name}/{constants.M_BOOK}: {constants.S_LOGIN}',
+                               PasswordMenu(chain_cls, self, constants.M_BOOK, f'{chain_cls.display_name}/{constants.M_BOOK}: {constants.S_PASSWORD}',
+                                            m_book_slots))
+            m_checkout = CvvMenu(chain_cls, self, constants.M_CHECKOUT, f'{chain_cls.display_name}/{constants.M_CHECKOUT}: {constants.S_CVV}',
+                                 CheckoutMenu(chain_cls, constants.M_CHECKOUT, []))
 
-            m_settings_password = PasswordMenu(chain_cls, self, 'Password', f'{chain_cls.display_name}/Settings: Please enter your password', None)
-            m_settings_login = LoginMenu(chain_cls, self, 'Login', f'{chain_cls.display_name}/Settings: Please enter your login', m_settings_password)
-            m_settings_payment = CvvMenu(chain_cls, self, 'Payment details',
-                                         f'{chain_cls.display_name}/Settings: Please enter cvv of a payment card linked to your "{chain_cls.display_name}" profile', None)
-            m_settings = Menu(chain_cls, 'Settings', [m_settings_login, m_settings_payment])
+            m_settings_password = PasswordMenu(chain_cls, self, constants.M_PASSWORD, f'{chain_cls.display_name}/{constants.M_SETTINGS}: {constants.S_PASSWORD}', None)
+            m_settings_login = LoginMenu(chain_cls, self, constants.M_LOGIN, f'{chain_cls.display_name}/{constants.M_SETTINGS}: {constants.S_LOGIN}', m_settings_password)
+            m_settings_payment = CvvMenu(chain_cls, self, constants.M_CVV,
+                                         f'{chain_cls.display_name}/{constants.M_SETTINGS}: {constants.S_CVV}', None)
+            m_settings = Menu(chain_cls, constants.M_SETTINGS, [m_settings_login, m_settings_payment])
             # update next menu once password or cvv entered
             m_settings_password.next_menu = m_settings
             m_settings_payment.next_menu = m_settings
 
-            m_chain = MainMenu(chain_cls, chain_cls.display_name, [m_auto_booking, m_book_slot_and_checkout, m_book_slot, m_checkout, m_settings])
-            m_chain_login = LoginMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}: Please enter your login',
-                                      PasswordMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}: Please enter your password',
+            m_chain = MainMenu(chain_cls, chain_cls.display_name, [m_auto_booking, m_book_and_checkout, m_book, m_checkout, m_settings])
+            m_chain_login = LoginMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}: {constants.S_LOGIN}',
+                                      PasswordMenu(chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}: {constants.S_PASSWORD}',
                                                    m_chain))
             m_book_checkout_slots.parent = m_chain_login
             m_book_slots.parent = m_chain_login
@@ -63,7 +64,7 @@ class GroceriesBot:
             chain_menus.append(m_chain)
             chain_login_menus.append(m_chain_login)
 
-        m_root = Menu(None, 'Main', chain_login_menus)
+        m_root = Menu(None, constants.M_MAIN, chain_login_menus)
         m_root.register(self)
         for chain_menu in chain_menus:
             chain_menu.parent = m_root

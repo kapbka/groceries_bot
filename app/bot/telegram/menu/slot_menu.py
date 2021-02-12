@@ -2,12 +2,12 @@
 
 import logging
 from telegram import Message
-from datetime import datetime, timedelta
-from app.bot.telegram.constants import ENABLED_EMOJI
+from datetime import datetime
+from app.bot.telegram import constants
 from app.bot.telegram.creds import Creds
-from app.constants import WEEKDAYS
 from app.bot.telegram.menu.menu import Menu
-from app.bot.telegram.helpers import get_chain_instance
+from app.bot.telegram.helpers import get_chain_instance, get_pretty_slot_day_name, get_pretty_slot_name, \
+                                     get_pretty_slot_time_name
 from logging import StreamHandler
 
 
@@ -48,9 +48,8 @@ class SlotsMenu(Menu):
         for i, sd in enumerate(slots):
             if i == 0 or slot_day != sd.date():
                 slot_day = sd.date()
-                day_disp_name = f"{slot_day.day}-{slot_day.strftime('%B')[0:3]} " \
-                                f"{str(WEEKDAYS(slot_day.weekday()).name).capitalize()}"
-                m_day = SlotDayMenu(self.chain_cls, slot_day, day_disp_name, self.make_book, self.make_checkout)
+                m_day = SlotDayMenu(self.chain_cls, slot_day, get_pretty_slot_day_name(slot_day),
+                                    self.make_book, self.make_checkout)
                 m_day.parent = self
                 m_day.register(self.bot)
                 children.append(m_day)
@@ -85,12 +84,10 @@ class SlotDayMenu(Menu):
         children = []
         for i, sd in enumerate(slots):
             if sd.date() == self.slot_day:
-                ss_time = sd
-                se_time = sd + timedelta(hours=self.chain_cls.slot_interval_hrs)
-                slot_disp_name = "{:02d}:{:02d}-{:02d}:{:02d}".format(ss_time.hour, ss_time.minute, se_time.hour, se_time.minute)
-                if cur_slot == sd:
-                    slot_disp_name = ENABLED_EMOJI + slot_disp_name
-                m_slot = SlotTimeMenu(self.chain_cls, slot_disp_name, chain, ss_time, self.make_book, self.make_checkout)
+                slot_disp_name = get_pretty_slot_time_name(sd, self.chain_cls)
+                if sd == cur_slot:
+                    slot_disp_name = constants.ENABLED_EMOJI + slot_disp_name
+                m_slot = SlotTimeMenu(self.chain_cls, slot_disp_name, chain, sd, self.make_book, self.make_checkout)
                 m_slot.parent = self
                 m_slot.register(self.bot)
                 children.append(m_slot)
@@ -106,7 +103,7 @@ class SlotTimeMenu(Menu):
         self.chain = chain
         self.start_datetime = start_datetime
         if not make_book and not make_checkout:
-            raise ValueError('At least one action required: booking or checkout!')
+            raise ValueError(constants.E_NO_ACTION)
         self.make_book = make_book
         self.make_checkout = make_checkout
 
@@ -114,17 +111,12 @@ class SlotTimeMenu(Menu):
         logging.debug(f'self.display_name {self.display_name}')
 
         endings = []
-
         if self.make_book:
             self.chain.book(self.start_datetime)
-            endings.append('booked')
-
+            endings.append(constants.S_BOOKED)
         if self.make_checkout:
             res = self.chain.checkout(Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv)
-            endings.append(f'checked out. Order number is {res}')
+            endings.append(f'{constants.S_CHECKED_OUT}. {constants.S_ORDER_NUMBER} {res}')
 
-        disp_name = f"Slot {self.start_datetime.day}-{self.start_datetime.strftime('%B')[0:3]} " \
-                    f"{str(WEEKDAYS(self.start_datetime.weekday()).name).capitalize()}" \
-                    f"{self.display_name} has been {' and '.join(endings)}"
-
+        disp_name = f"Slot {get_pretty_slot_name(self.start_datetime, self.chain_cls)} has been {' and '.join(endings)}"
         message.edit_text(disp_name, reply_markup=self._keyboard([]))

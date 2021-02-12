@@ -107,8 +107,8 @@ class Autobook(object):
                 if slot:
                     chain.book(slot)
                     res = chain.checkout(Creds.chat_creds[chat_id][chain_name].cvv)
-                    conf_msg = f'Slot "{get_pretty_slot_name(slot, chain_cls)}" has been booked and checked out. ' \
-                               f'Order number is "{res}".'
+                    conf_msg = f'{chain_name.capitalize()}: slot "{get_pretty_slot_name(slot, chain_cls)}" ' \
+                               f'has been booked and checked out. Order number is "{res}".'
                     logging.info(f'chat_id={chat_id}, chain={chain_name}: {conf_msg}')
                     Autobook.bot.send_message(chat_id, conf_msg)
                 else:

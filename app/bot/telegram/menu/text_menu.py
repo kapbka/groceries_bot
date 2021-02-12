@@ -7,6 +7,7 @@ from app.bot.telegram.helpers import get_message
 from app.bot.telegram.creds import Creds
 from app.bot.telegram.chat_chain_cache import ChatChainCache
 from app.bot.telegram.menu.menu import Menu
+from app.bot.telegram import constants
 
 
 class TextMenu(Menu):
@@ -44,7 +45,7 @@ class LoginMenu(TextMenu):
         is_login_pwd = (Creds.chat_creds[message.chat_id][self.chain_cls.name].login and
                         Creds.chat_creds[message.chat_id][self.chain_cls.name].password)
 
-        if not is_login_pwd or self.display_name == 'Login':
+        if not is_login_pwd or self.display_name == constants.M_LOGIN:
             msg = self.bot.bot.send_message(message.chat_id, self.text_message, reply_markup=ForceReply())
             message.delete()
         else:
@@ -61,7 +62,7 @@ class PasswordMenu(TextMenu):
         is_login_pwd = (Creds.chat_creds[message.chat_id][self.chain_cls.name].login and
                         Creds.chat_creds[message.chat_id][self.chain_cls.name].password)
 
-        if not is_login_pwd or self.parent.display_name == 'Login':
+        if not is_login_pwd or self.parent.display_name == constants.M_LOGIN:
             msg = self.bot.bot.send_message(message.chat_id, self.text_message, reply_markup=ForceReply())
         else:
             self.next_menu.display(message)
@@ -82,7 +83,7 @@ class CvvMenu(TextMenu):
         self.init_creds(message)
         is_cvv = Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv
 
-        if not is_cvv or self.display_name == 'Payment details':
+        if not is_cvv or self.display_name == constants.M_CVV:
             msg = self.bot.bot.send_message(message.chat_id, self.text_message, reply_markup=ForceReply())
             if not self.parent.is_text_menu:
                 message.delete()
