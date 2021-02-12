@@ -33,6 +33,10 @@ S_ORDER_NUMBER = 'Order number is'
 S_BOOKED = 'booked'
 S_CHECKED_OUT = 'chacked out'
 
+S_NO_MATCHING_SLOT = 'No matching slot found!'
+S_SLOT_FOUND = 'Matching slot found'
+
 # errors/exceptions
 E_SLOT_EXPIRED = 'The booked slot has expired, please book a new slot'
 E_NO_ACTION = 'At least one action required: booking or checkout!'
+

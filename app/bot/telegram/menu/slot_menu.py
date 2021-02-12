@@ -54,8 +54,12 @@ class SlotsMenu(Menu):
                 m_day.register(self.bot)
                 children.append(m_day)
 
+        for child in self.children:
+            child.unregister()
+        self.children = children
+
         # 3. adding text
-        message.edit_text(self.display_name, reply_markup=self._keyboard(children))
+        message.edit_text(self.display_name, reply_markup=self._keyboard(self.children))
 
 
 class SlotDayMenu(Menu):
@@ -92,8 +96,12 @@ class SlotDayMenu(Menu):
                 m_slot.register(self.bot)
                 children.append(m_slot)
 
+        for child in self.children:
+            child.unregister()
+        self.children = children
+
         # 3. adding text
-        message.edit_text(self.display_name, reply_markup=self._keyboard(children))
+        message.edit_text(self.display_name, reply_markup=self._keyboard(self.children))
 
 
 class SlotTimeMenu(Menu):

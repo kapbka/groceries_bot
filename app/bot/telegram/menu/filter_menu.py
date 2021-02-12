@@ -46,17 +46,20 @@ class FilterDaysMenu(Menu):
         m_auto_booking.register(self.bot)
         children.append(m_auto_booking)
 
-        return children
+        # unregister if we need to redraw the menu
+        for child in self.children:
+            child.unregister()
+        self.children = children
 
     def create(self, message):
-        children = self._generate(message)
+        self._generate(message)
 
-        message.reply_text(self.display_name, reply_markup=self._keyboard(children))
+        message.reply_text(self.display_name, reply_markup=self._keyboard(self.children))
 
     def display(self, message):
-        children = self._generate(message)
+        self._generate(message)
 
-        message.edit_text(self.display_name, reply_markup=self._keyboard(children))
+        message.edit_text(self.display_name, reply_markup=self._keyboard(self.children))
 
     def init_autobook(self, message):
         chat_id = message.chat_id
@@ -88,17 +91,19 @@ class FilterDayMenu(Menu):
             m_filter_slot.register(self.bot)
             children.append(m_filter_slot)
 
-        return children
+        for child in self.children:
+            child.unregister()
+        self.children = children
 
     def create(self, message):
-        children = self._generate(message)
+        self._generate(message)
 
-        message.reply_text(self.display_name, reply_markup=self._keyboard(children))
+        message.reply_text(self.display_name, reply_markup=self._keyboard(self.children))
 
     def display(self, message):
-        children = self._generate(message)
+        self._generate(message)
 
-        message.edit_text(self.display_name, reply_markup=self._keyboard(children))
+        message.edit_text(self.display_name, reply_markup=self._keyboard(self.children))
 
 
 class FilterTimeMenu(Menu):

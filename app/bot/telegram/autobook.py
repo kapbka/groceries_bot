@@ -6,6 +6,7 @@ from telegram.ext import Updater
 from collections import defaultdict
 from datetime import datetime, timedelta
 from app.constants import WEEKDAYS
+from app.bot.telegram import constants
 from app.bot.telegram.creds import Creds
 from app.bot.telegram.helpers import get_chain_instance, get_pretty_slot_name
 from app.tesco.tesco import Tesco
@@ -88,11 +89,11 @@ class Autobook(object):
             for st in slot_times:
                 # if time matches then book and checkout
                 if st.time().hour in filters[wd]:
-                    logging.info(f'Matching slot found {st}')
+                    logging.info(f'{constants.S_SLOT_FOUND}: {st}')
                     return st
 
         # no matching slots according to the filters
-        logging.debug(f'No matching slot found!')
+        logging.debug(constants.S_NO_MATCHING_SLOT)
         return None
 
     def do_autobook(self):
@@ -108,7 +109,8 @@ class Autobook(object):
                     chain.book(slot)
                     res = chain.checkout(Creds.chat_creds[chat_id][chain_name].cvv)
                     conf_msg = f'{chain_name.capitalize()}: slot "{get_pretty_slot_name(slot, chain_cls)}" ' \
-                               f'has been booked and checked out. Order number is "{res}".'
+                               f'has been {constants.S_BOOKED} and {constants.S_CHECKED_OUT}. ' \
+                               f'{constants.S_ORDER_NUMBER} "{res}".'
                     logging.info(f'chat_id={chat_id}, chain={chain_name}: {conf_msg}')
                     Autobook.bot.send_message(chat_id, conf_msg)
                 else:

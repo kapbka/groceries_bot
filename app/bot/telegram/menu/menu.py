@@ -21,16 +21,24 @@ class Menu:
         self.children = children
         self.bot = None
         self.alignment_len = alignment_len
+        wrapper = lambda u, c: self.display(get_message(u))
+        self.handler = CallbackQueryHandler(wrapper, pattern=self.name)
 
     def register(self, bot):
         self.bot = bot
-        logging.debug(f'self.display_name {self.display_name}, {self.name}')
-        wrapper = lambda u, c: self.display(get_message(u))
-        bot.updater.dispatcher.add_handler(CallbackQueryHandler(wrapper, pattern=self.name))
+        logging.debug(f'register {self.display_name}, {self.name}')
+        bot.updater.dispatcher.add_handler(self.handler)
 
         for c in self.children:
             c.parent = self
             c.register(bot)
+
+    def unregister(self):
+        logging.debug(f'unregister {self.display_name}')
+        self.bot.updater.dispatcher.remove_handler(self.handler)
+
+        for c in self.children:
+            c.unregister()
 
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}, self.keyboard() {self._keyboard(self.children)}')
