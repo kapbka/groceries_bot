@@ -8,6 +8,8 @@ from app.bot.telegram.helpers import get_message
 from app.bot.telegram.helpers import get_chain_instance, get_pretty_slot_name
 from app.bot.telegram.creds import Creds
 from app.bot.telegram import constants
+from app.bot.log.exception_handler import handle_exception
+from app.bot.log.logger import ProgressBarWriter
 
 
 class Menu:
@@ -22,7 +24,7 @@ class Menu:
         self.bot = None
         self.alignment_len = alignment_len
         wrapper = lambda u, c: self.display(get_message(u))
-        self.handler = CallbackQueryHandler(wrapper, pattern=self.name)
+        self.handler = CallbackQueryHandler(handle_exception(wrapper), pattern=self.name)
 
     def register(self, bot):
         self.bot = bot
@@ -74,14 +76,15 @@ class MainMenu(Menu):
         logging.debug(f'self.display_name {self.display_name}, self.keyboard() {self._keyboard(self.children)}')
         logging.info(f'Loggining into "{self.display_name.capitalize()} account"')
 
-        chain = get_chain_instance(message.chat_id, self.chain_cls)
+        with ProgressBarWriter(message) as _:
+            chain = get_chain_instance(message.chat_id, self.chain_cls)
 
-        new_children = []
-        for c in self.children:
-            if c.display_name != constants.M_CHECKOUT or chain.get_current_slot():
-                new_children.append(c)
+            children = []
+            for c in self.children:
+                if c.display_name != constants.M_CHECKOUT or chain.get_current_slot():
+                    children.append(c)
 
-        message.edit_text(self.display_name, reply_markup=self._keyboard(new_children))
+        message.edit_text(self.display_name, reply_markup=self._keyboard(children))
 
 
 class CheckoutMenu(Menu):

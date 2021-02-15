@@ -11,6 +11,7 @@ from app.bot.telegram.autobook import Autobook
 from app.bot.telegram.creds import Creds
 from app.bot.telegram.helpers import get_message, get_pretty_filter_slot_time_name
 from app.bot.telegram import constants
+from app.bot.log.exception_handler import handle_exception
 
 
 class FilterDaysMenu(Menu):
@@ -178,7 +179,9 @@ class IntervalMenu(Menu):
                               [])
         m_up_interval = Menu(self.chain_cls, constants.M_INCREASE, [])
 
-        self.bot.updater.dispatcher.add_handler(CallbackQueryHandler(self._decrement, pattern=m_down_interval.name))
-        self.bot.updater.dispatcher.add_handler(CallbackQueryHandler(self._increment, pattern=m_up_interval.name))
+        self.bot.updater.dispatcher.add_handler(CallbackQueryHandler(handle_exception(self._decrement),
+                                                                     pattern=m_down_interval.name))
+        self.bot.updater.dispatcher.add_handler(CallbackQueryHandler(handle_exception(self._increment),
+                                                                     pattern=m_up_interval.name))
 
         message.edit_text(self.display_name, reply_markup=self._keyboard([m_down_interval, m_interval_val, m_up_interval]))

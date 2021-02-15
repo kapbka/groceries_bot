@@ -8,6 +8,7 @@ from app.bot.telegram.creds import Creds
 from app.bot.telegram.chat_chain_cache import ChatChainCache
 from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram import constants
+from app.bot.log.exception_handler import handle_exception
 
 
 class TextMenu(Menu):
@@ -27,7 +28,7 @@ class TextMenu(Menu):
         if self.text_message not in bot.reply_menus:
             bot.reply_menus[self.text_message] = self.handle_response
             wrapper = lambda u, c: self.display(get_message(u))
-            bot.updater.dispatcher.add_handler(CallbackQueryHandler(wrapper, pattern=self.name))
+            bot.updater.dispatcher.add_handler(CallbackQueryHandler(handle_exception(wrapper), pattern=self.name))
             if self.next_menu:
                 self.next_menu.register(bot)
 

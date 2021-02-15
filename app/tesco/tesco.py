@@ -10,12 +10,10 @@ from urllib.parse import urljoin
 import dateutil.parser
 from app.constants import CHAIN_INTERVAL_HRS
 from app.timed_lru_cache import timed_lru_cache
+from app.bot.log.logger import PROGRESS_LOG
 
 MON, TUE, WED, THU, FRI, SAT, SUN = range(7)
 SLOT_EXPIRY_SEC = 300
-
-
-log = logging.getLogger('telegram')
 
 
 class Tesco:
@@ -34,6 +32,9 @@ class Tesco:
     def __init__(self, login, password):
         self._login = login
         self._password = password
+
+        self._current_slot = None
+        self._last_current_slot_update_time = None
 
         chrome_options = webdriver.ChromeOptions()
         capabilities = DesiredCapabilities.CHROME.copy()
@@ -73,6 +74,7 @@ class Tesco:
                 time.sleep(1)
 
     def login(self):
+        PROGRESS_LOG.info('Loggining into profile')
         self._load('account/en-GB/login')
         login = self.driver.find_element_by_id('username')
         login.send_keys(self._login)
@@ -84,24 +86,31 @@ class Tesco:
         form.submit()
 
     def get_current_slot(self):
+        PROGRESS_LOG.info('Fetching current slot')
+
+        if self._current_slot and time.time() - self._last_current_slot_update_time < Tesco.session_expiry_sec:
+            return self._current_slot
+
         self._load('groceries')
         slots = self.driver.find_elements_by_class_name("context-cards--slot-booked")
         if len(slots):
-            date = slots[0].find_element_by_class_name('context-card-date-tile')
-            time = slots[0].find_element_by_class_name('slot-time').get_attribute('innerHTML')
-            day = date.find_element_by_class_name('date').get_attribute('innerHTML')
-            month = date.find_element_by_class_name('month').get_attribute('innerHTML')
+            _date = slots[0].find_element_by_class_name('context-card-date-tile')
+            _time = slots[0].find_element_by_class_name('slot-time').get_attribute('innerHTML')
+            _day = _date.find_element_by_class_name('date').get_attribute('innerHTML')
+            _month = _date.find_element_by_class_name('month').get_attribute('innerHTML')
 
-            res = datetime.datetime.strptime(f"{datetime.datetime.now().year}-{month}-{day} {time.split(' - ')[0]}",
+            res = datetime.datetime.strptime(f"{datetime.datetime.now().year}-{_month}-{_day} {_time.split(' - ')[0]}",
                                              '%Y-%b-%d %H:%M')
             if slots[0].get_attribute('class').find('expired') != -1:
                 logging.warning(f"Current slot {res} has expired")
                 return None
+            self._current_slot = res
+            self._last_current_slot_update_time = time.time()
             return res
 
     @timed_lru_cache(SLOT_EXPIRY_SEC)
     def get_slots(self, filters=None):
-        logging.info(f'Getting slots with filters "{filters or "no filters"}"')
+        PROGRESS_LOG.info(f'Fetching slots with filters "{filters or "no filters"}"')
         self._load('groceries/en-GB/slots/delivery')
 
         available_weeks = self.driver.find_elements_by_class_name("slot-selector--week-tabheader-link")
@@ -112,8 +121,7 @@ class Tesco:
         slots_data = list()
 
         for week_href in weeks:
-            logging.info(f'Fetching slots for {week_href.replace("?slotGroup=1", "").split("/")[-1]}')
-            log.info(f'Fetching slots for {week_href.replace("?slotGroup=1", "").split("/")[-1]}')
+            PROGRESS_LOG.info(f'Fetching slots for {week_href.replace("?slotGroup=1", "").split("/")[-1]}')
             self.driver.get(week_href)
 
             slots = self.driver.find_elements_by_class_name('slot-grid--item')
@@ -139,6 +147,8 @@ class Tesco:
         return [x for x in sorted(slots_data)]
 
     def book(self, slot_begin: datetime.datetime):
+        PROGRESS_LOG.info('Booking slot')
+
         # generate slot id
         slot_end = slot_begin + datetime.timedelta(hours=self.slot_interval_hrs)
         time_format = "%Y-%m-%dT%H:%M:%SZ"
@@ -149,6 +159,9 @@ class Tesco:
 
         button = self.driver.find_element_by_id(slot_id).find_element_by_xpath('..')
         button.click()
+
+        self._current_slot = slot_begin
+        self._last_current_slot_update_time = time.time()
 
     def is_basket_empty(self):
         self._load('groceries/en-GB/trolley')
