@@ -3,6 +3,7 @@ from python_graphql_client import GraphqlClient
 from app.waitrose import constants
 import logging
 from datetime import datetime
+from app.log import app_exception
 
 
 class Session:
@@ -12,10 +13,26 @@ class Session:
         self.client = GraphqlClient(endpoint=constants.SESSION_ENDPOINT_URL)
 
         self.token = None
-        session_data = self.execute(
-            constants.SESSION_QUERY,
-            {"session": {"username": login, "password": password, "customerId": "-1", "clientId": "WEB_APP"}})
+        try:
+            session_data = self.execute(
+                constants.SESSION_QUERY,
+                {"session": {"username": login, "password": password, "customerId": "-1", "clientId": "WEB_APP"}})
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 401:
+                raise app_exception.LoginFailException
+            elif err.response.status_code == 500:
+                raise app_exception.ShopProviderUnavailableException
+            else:
+                raise app_exception.ConnectionException
+        except requests.ConnectionError:
+            raise app_exception.ConnectionException
+        except requests.exceptions.RequestException as e:
+            raise
+
         self.token = session_data['data']['generateSession']['accessToken']
+        if self.token is None:
+            raise app_exception.LoginFailException(user_err_msg=session_data['data']['generateSession']['failures'][0]['message'])
+
         self.headers = {'authorization': f"Bearer {self.token}"}
         self.customerId = int(session_data['data']['generateSession']['customerId'])
         self.customerOrderId = int(session_data['data']['generateSession']['customerOrderId'])

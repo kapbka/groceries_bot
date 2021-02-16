@@ -11,7 +11,7 @@ from app.bot.telegram.autobook import Autobook
 from app.bot.telegram.creds import Creds
 from app.bot.telegram.helpers import get_message, get_pretty_filter_slot_time_name
 from app.bot.telegram import constants
-from app.bot.log.exception_handler import handle_exception
+from app.log.exception_handler import handle_exception
 
 
 class FilterDaysMenu(Menu):

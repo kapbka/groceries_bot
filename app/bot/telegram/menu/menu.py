@@ -8,8 +8,8 @@ from app.bot.telegram.helpers import get_message
 from app.bot.telegram.helpers import get_chain_instance, get_pretty_slot_name
 from app.bot.telegram.creds import Creds
 from app.bot.telegram import constants
-from app.bot.log.exception_handler import handle_exception
-from app.bot.log.logger import ProgressBarWriter
+from app.log.exception_handler import handle_exception
+from app.log.logger import ProgressBarWriter
 
 
 class Menu:

@@ -8,7 +8,7 @@ from app.bot.telegram.creds import Creds
 from app.bot.telegram.chat_chain_cache import ChatChainCache
 from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram import constants
-from app.bot.log.exception_handler import handle_exception
+from app.log.exception_handler import handle_exception
 
 
 class TextMenu(Menu):

@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 import dateutil.parser
 from app.constants import CHAIN_INTERVAL_HRS
 from app.timed_lru_cache import timed_lru_cache
-from app.bot.log.logger import PROGRESS_LOG
+from app.log.logger import PROGRESS_LOG
 
 MON, TUE, WED, THU, FRI, SAT, SUN = range(7)
 SLOT_EXPIRY_SEC = 300
