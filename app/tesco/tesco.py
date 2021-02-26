@@ -197,7 +197,7 @@ class Tesco:
             try:
                 text = self.driver.find_element_by_xpath("//*[contains(text(), 'Your order number is')]")
                 logging.info(f"Order text: '{text.text}'")
-                return re.match(r"[^\d]+(\d{4}-\d{4}-\d{3})", text.text).group(1)
+                return re.match(r"[^\d]+(\d+-\d+-\d+)", text.text).group(1)
             except:
                 logging.info("Waiting for payment confirmation")
                 time.sleep(1)

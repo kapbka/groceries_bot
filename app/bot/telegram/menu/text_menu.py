@@ -4,7 +4,7 @@ import logging
 from telegram import ForceReply
 from telegram.ext import CallbackQueryHandler
 from app.bot.telegram.helpers import get_message
-from app.bot.telegram.creds import Creds
+from app.bot.telegram.settings import Settings
 from app.bot.telegram.chat_chain_cache import ChatChainCache
 from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram import constants
@@ -35,16 +35,11 @@ class TextMenu(Menu):
     def handle_response(self, message):
         pass
 
-    def init_creds(self, message):
-        if message.chat_id not in Creds.chat_creds or self.chain_cls.name not in Creds.chat_creds[message.chat_id]:
-            Creds.chat_creds[message.chat_id] = {self.chain_cls.name: Creds(message.chat_id, self.chain_cls.name)}
-
 
 class LoginMenu(TextMenu):
     def display(self, message):
-        self.init_creds(message)
-        is_login_pwd = (Creds.chat_creds[message.chat_id][self.chain_cls.name].login and
-                        Creds.chat_creds[message.chat_id][self.chain_cls.name].password)
+        settings = Settings(message.chat_id, self.chain_cls.name)
+        is_login_pwd = settings.login and settings.password
 
         if not is_login_pwd or self.display_name == constants.M_LOGIN:
             msg = self.bot.bot.send_message(message.chat_id, self.text_message, reply_markup=ForceReply())
@@ -53,15 +48,14 @@ class LoginMenu(TextMenu):
             self.next_menu.display(message)
 
     def handle_response(self, message):
-        Creds.chat_creds[message.chat_id][self.chain_cls.name].login = message.text
+        Settings(message.chat_id, self.chain_cls.name).login = message.text
         self.next_menu.display(message)
 
 
 class PasswordMenu(TextMenu):
     def display(self, message):
-        self.init_creds(message)
-        is_login_pwd = (Creds.chat_creds[message.chat_id][self.chain_cls.name].login and
-                        Creds.chat_creds[message.chat_id][self.chain_cls.name].password)
+        settings = Settings(message.chat_id, self.chain_cls.name)
+        is_login_pwd = settings.login and settings.password
 
         if not is_login_pwd or self.parent.display_name == constants.M_LOGIN:
             msg = self.bot.bot.send_message(message.chat_id, self.text_message, reply_markup=ForceReply())
@@ -69,7 +63,7 @@ class PasswordMenu(TextMenu):
             self.next_menu.display(message)
 
     def handle_response(self, message):
-        Creds.chat_creds[message.chat_id][self.chain_cls.name].password = message.text
+        Settings(message.chat_id, self.chain_cls.name).password = message.text
 
         ChatChainCache.invalidate(message.chat_id, self.chain_cls)
 
@@ -81,10 +75,9 @@ class PasswordMenu(TextMenu):
 
 class CvvMenu(TextMenu):
     def display(self, message):
-        self.init_creds(message)
-        is_cvv = Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv
+        settings = Settings(message.chat_id, self.chain_cls.name)
 
-        if not is_cvv or self.display_name == constants.M_CVV:
+        if not settings.cvv or self.display_name == constants.M_CVV:
             msg = self.bot.bot.send_message(message.chat_id, self.text_message, reply_markup=ForceReply())
             if not self.parent.is_text_menu:
                 message.delete()
@@ -92,7 +85,7 @@ class CvvMenu(TextMenu):
             self.next_menu.display(message)
 
     def handle_response(self, message):
-        Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv = message.text
+        Settings(message.chat_id, self.chain_cls.name).cvv = message.text
 
         if not self.next_menu.is_text_menu:
             self.next_menu.create(message)

@@ -12,6 +12,7 @@ from app.bot.telegram.menu.slot_menu import SlotsMenu
 from app.bot.telegram.menu.filter_menu import FilterDaysMenu
 from app.bot.telegram.helpers import get_message
 from app.bot.telegram import constants
+from app.db.api import connect
 
 
 class GroceriesBot:
@@ -25,6 +26,9 @@ class GroceriesBot:
         self.reply_menus = {}
 
         self.last_message = None
+
+        # db connection
+        connect()
 
     def create_menu(self, update: Update, context: CallbackContext):
         message = get_message(update)

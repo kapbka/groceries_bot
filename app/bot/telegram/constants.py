@@ -31,7 +31,7 @@ S_BACK_TO = 'Back to'
 
 S_ORDER_NUMBER = 'Order number is'
 S_BOOKED = 'booked'
-S_CHECKED_OUT = 'chacked out'
+S_CHECKED_OUT = 'checked out'
 
 S_NO_MATCHING_SLOT = 'No matching slot found!'
 S_SLOT_FOUND = 'Matching slot found'

@@ -6,7 +6,7 @@ from telegram.ext import CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from app.bot.telegram.helpers import get_message
 from app.bot.telegram.helpers import get_chain_instance, get_pretty_slot_name
-from app.bot.telegram.creds import Creds
+from app.bot.telegram.settings import Settings
 from app.bot.telegram import constants
 from app.log.exception_handler import handle_exception
 from app.log.logger import ProgressBarWriter
@@ -118,7 +118,7 @@ class CheckoutSlotMenu(Menu):
         if not cur_slot:
             raise ValueError(constants.E_SLOT_EXPIRED)
 
-        res = chain.checkout(Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv)
+        res = chain.checkout(Settings(message.chat_id, self.chain_cls.name).cvv)
 
         disp_name = f"Slot {self.display_name} is {constants.S_CHECKED_OUT}. {constants.S_ORDER_NUMBER} {res}"
         message.edit_text(disp_name, reply_markup=self._keyboard([]))

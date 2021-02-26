@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 from app.bot.telegram import constants
-from app.bot.telegram.creds import Creds
+from app.bot.telegram.settings import Settings
 from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram.helpers import get_chain_instance, get_pretty_slot_day_name, get_pretty_slot_name, \
     get_pretty_slot_time_name
@@ -102,7 +102,7 @@ class SlotTimeMenu(Menu):
                 self.chain.book(self.start_datetime)
                 endings.append(constants.S_BOOKED)
             if self.make_checkout:
-                res = self.chain.checkout(Creds.chat_creds[message.chat_id][self.chain_cls.name].cvv)
+                res = self.chain.checkout(Settings(message.chat_id, self.chain_cls.name).cvv)
                 endings.append(f'{constants.S_CHECKED_OUT}. {constants.S_ORDER_NUMBER} {res}')
 
         disp_name = f"Slot {get_pretty_slot_name(self.start_datetime, self.chain_cls)} has been {' and '.join(endings)}"

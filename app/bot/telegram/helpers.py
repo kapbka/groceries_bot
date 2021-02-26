@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from telegram import Update
 from app.constants import WEEKDAYS
-from app.bot.telegram.creds import Creds
+from app.bot.telegram.settings import Settings
 from app.bot.telegram.chat_chain_cache import ChatChainCache
 
 
@@ -11,9 +11,8 @@ def get_message(update: Update):
 
 
 def get_chain_instance(chat_id, chain_cls):
-    return ChatChainCache.create_or_get(chat_id, chain_cls,
-                                        Creds.chat_creds[chat_id][chain_cls.name].login,
-                                        Creds.chat_creds[chat_id][chain_cls.name].password)
+    settings = Settings(chat_id, chain_cls.name)
+    return ChatChainCache.create_or_get(chat_id, chain_cls, settings.login, settings.password)
 
 
 def get_pretty_slot_day_name(slot_start_date: datetime):
