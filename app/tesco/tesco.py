@@ -39,7 +39,7 @@ class Tesco:
         chrome_options = webdriver.ChromeOptions()
         capabilities = DesiredCapabilities.CHROME.copy()
 
-        if os.getenv('container') == 'oci':
+        if os.getenv('INSIDE_DOCKER_CONTAINER') == '1':
             self.driver = webdriver.Remote("http://selenium-hub:4444/wd/hub",
                                            desired_capabilities=capabilities,
                                            options=chrome_options)

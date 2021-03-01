@@ -3,3 +3,5 @@ python-graphql-client
 selenium
 python-dateutil
 mongoengine
+PyCrypto
+python-telegram-bot

@@ -20,3 +20,12 @@ services:
       - "4442:4442"
       - "4443:4443"
       - "4444:4444"
+
+  groceries-bot:
+    image: karbka/groceries-bot:latest
+    build:
+      context: .
+    restart: always
+    depends_on:
+      - chrome
+      - selenium-hub
