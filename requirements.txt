@@ -1,7 +1,9 @@
+telegram
 requests
 python-graphql-client
 selenium
 python-dateutil
 mongoengine
-PyCrypto
+pycrypto
+cryptography
 python-telegram-bot

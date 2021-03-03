@@ -1,6 +1,7 @@
 # Settings class
 
 from app.db.models import Chain
+from app.db.api import encrypt, decrypt
 
 
 class Settings(object):
@@ -14,14 +15,20 @@ class Settings(object):
             self.db_obj = obj[0]
         else:
             self.db_obj = Chain(chat_id=chat_id, name=chain_name)
+        self.chat_id = chat_id
+        self.chain_name = chain_name
 
     def __getattr__(self, item):
-        if item in ['db_obj']:
+        if item in ['db_obj', 'chat_id', 'chain_name']:
             return object.__getattribute__(self, item)
         elif item == 'login':
             return self.db_obj.creds.login
         elif item == 'password':
-            return self.db_obj.creds.password
+            pwd = self.db_obj.creds.password
+            if pwd:
+                return decrypt(pwd, str(self.chat_id) + self.chain_name)
+            else:
+                return None
         elif item == 'cvv':
             return self.db_obj.creds.cvv
         elif item == 'ab_enabled':
@@ -33,13 +40,13 @@ class Settings(object):
             return self.db_obj.autobook.filters.get(item, [])
 
     def __setattr__(self, key, value):
-        if key in ['db_obj']:
+        if key in ['db_obj', 'chat_id', 'chain_name']:
             super().__setattr__(key, value)
         else:
             if key == 'login':
                 self.db_obj.creds.login = value
             elif key == 'password':
-                self.db_obj.creds.password = value
+                self.db_obj.creds.password = encrypt(value, str(self.chat_id) + self.chain_name)
             elif key == 'cvv':
                 if value and (not int(value) or len(value) != 3):
                     raise ValueError(f'Invalid cvv {value}, must be 3 digit number!')

@@ -1,10 +1,10 @@
 from mongoengine import Document, EmbeddedDocument, EmbeddedDocumentField, EmbeddedDocumentListField,\
-    StringField, BooleanField, IntField, DictField
+    StringField, BooleanField, IntField, DictField, BinaryField
 
 
 class Cred(EmbeddedDocument):
     login = StringField(required=True)
-    password = StringField()
+    password = BinaryField()
     cvv = IntField()
 
 
