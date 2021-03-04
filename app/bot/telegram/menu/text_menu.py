@@ -14,8 +14,9 @@ from app.log.exception_handler import handle_exception
 class TextMenu(Menu):
     is_text_menu = True
 
-    def __init__(self, chain_cls, bot, display_name: str, text_message: str, next_menu: Menu = None):
+    def __init__(self, chat_id, chain_cls, bot, display_name: str, text_message: str, next_menu: Menu = None):
         super().__init__(chain_cls, display_name, [])
+        self.chat_id = chat_id
         self.text_message = text_message
         self.next_menu = next_menu
         if next_menu:
@@ -25,12 +26,16 @@ class TextMenu(Menu):
     def register(self, bot):
         logging.debug(f'TextMenu register {self.display_name}, {self.text_message}, {self.name}')
 
-        if self.text_message not in bot.reply_menus:
-            bot.reply_menus[self.text_message] = self.handle_response
+        if self.text_message not in bot.reply_menus[self.chat_id]:
+            bot.reply_menus[self.chat_id][self.text_message] = self.handle_response
             wrapper = lambda u, c: self.display(get_message(u))
             bot.updater.dispatcher.add_handler(CallbackQueryHandler(handle_exception(wrapper), pattern=self.name))
             if self.next_menu:
                 self.next_menu.register(bot)
+
+    def unregister(self):
+        logging.debug(f'unregister {self.display_name}')
+        self.bot.updater.dispatcher.remove_handler(self.handler)
 
     def handle_response(self, message):
         pass

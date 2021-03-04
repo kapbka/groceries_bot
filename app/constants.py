@@ -8,3 +8,8 @@ CHAIN_INTERVAL_HRS = 1
 
 # Fernet.generate_key()
 APP_BASE64_KEY = b'MXueuoA52O4a8DL8GjTNMDmtny8Wdc_rc3S_7bHSA6Y='
+
+
+EXL_MARK_EMOJI = '\u2757'
+
+LOG_CHAT_ID = -576238581

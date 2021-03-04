@@ -19,7 +19,7 @@ class AppException(Exception):
 
     @property
     def traceback(self):
-        return traceback.TracebackException.from_exception(self).format()
+        return ''.join(traceback.TracebackException.from_exception(self).format())
 
     def log_exception(self):
         exception = {
@@ -29,7 +29,7 @@ class AppException(Exception):
             'user_msg': self.user_err_msg,
             'traceback': self.traceback
         }
-        print(f'EXCEPTION: {datetime.utcnow().isoformat()}: {exception}')
+        return f'EXCEPTION: {datetime.utcnow().isoformat()}: {exception}'
 
 
 class LoginFailException(AppException):

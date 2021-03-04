@@ -133,7 +133,7 @@ class EnabledMenu(Menu):
         settings.ab_enabled = not settings.ab_enabled
 
         if self.display_name.startswith(DISABLED_EMOJI) and not settings.cvv:
-            m_cvv = CvvMenu(self.chain_cls, self.bot, constants.M_ENABLE_AUTOBOOKING,
+            m_cvv = CvvMenu(message.chat_id, self.chain_cls, self.bot, constants.M_ENABLE_AUTOBOOKING,
                             f'{self.chain_cls.display_name}/{constants.M_ENABLE_AUTOBOOKING}: {constants.S_CVV}')
             m_cvv.register(self.bot)
             m_cvv.parent = self
