@@ -9,7 +9,7 @@ from app.bot.telegram.helpers import get_chain_instance, get_pretty_slot_name
 from app.bot.telegram.settings import Settings
 from app.bot.telegram import constants
 from app.log.exception_handler import handle_exception
-from app.log.logger import ProgressBarWriter
+from app.log.status_bar import ProgressBarWriter
 
 
 class Menu:

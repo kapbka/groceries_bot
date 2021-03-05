@@ -7,7 +7,7 @@ from app.bot.telegram.settings import Settings
 from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram.helpers import get_chain_instance, get_pretty_slot_day_name, get_pretty_slot_name, \
     get_pretty_slot_time_name
-from app.log.logger import ProgressBarWriter
+from app.log.status_bar import ProgressBarWriter
 
 
 class SlotsMenu(Menu):

@@ -3,7 +3,7 @@ import sys
 import telegram
 import logging
 from app.log import app_exception
-from app.log.logger import PROGRESS_LOG, StatusBarWriter
+from app.log.status_bar import PROGRESS_LOG, StatusBarWriter
 from app.constants import LOG_CHAT_ID
 
 
