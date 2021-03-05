@@ -14,6 +14,7 @@ from app.bot.telegram.helpers import get_message
 from app.bot.telegram import constants
 from app.db.api import connect
 from collections import defaultdict
+from app.bot.telegram.chat_menu_handlers import ChatMenuHandlers
 
 
 class GroceriesBot:
@@ -37,18 +38,16 @@ class GroceriesBot:
 
         # text menus
         self.reply_menus.pop(chat_id, None)
-        # root menu
-        if chat_id in self.root_menus:
-            self.root_menus[chat_id].unregister()
-            self.root_menus.pop(chat_id, None)
+        # clean registered menus
+        ChatMenuHandlers.unregister_all_handlers(chat_id, self)
         #
         chain_login_menus = []
         chain_menus = []
         for chain_cls in self.chains:
-            m_book_checkout_slots = SlotsMenu(chain_cls, constants.M_AVAILABLE_SLOTS, make_checkout=True)
-            m_book_slots = SlotsMenu(chain_cls, constants.M_AVAILABLE_SLOTS)
+            m_book_checkout_slots = SlotsMenu(chat_id, chain_cls, constants.M_AVAILABLE_SLOTS, make_checkout=True)
+            m_book_slots = SlotsMenu(chat_id, chain_cls, constants.M_AVAILABLE_SLOTS)
 
-            m_auto_booking = FilterDaysMenu(chain_cls, constants.M_AUTOBOOKING)
+            m_auto_booking = FilterDaysMenu(self, chat_id, chain_cls, constants.M_AUTOBOOKING)
             m_book_and_checkout = CvvMenu(chat_id, chain_cls, self, constants.M_BOOK_AND_CHECKOUT,
                                           f'{chain_cls.display_name}/{constants.M_BOOK_AND_CHECKOUT}: {constants.S_CVV}',
                                           m_book_checkout_slots)
@@ -56,18 +55,18 @@ class GroceriesBot:
                                PasswordMenu(chat_id, chain_cls, self, constants.M_BOOK, f'{chain_cls.display_name}/{constants.M_BOOK}: {constants.S_PASSWORD}',
                                             m_book_slots))
             m_checkout = CvvMenu(chat_id, chain_cls, self, constants.M_CHECKOUT, f'{chain_cls.display_name}/{constants.M_CHECKOUT}: {constants.S_CVV}',
-                                 CheckoutMenu(chain_cls, constants.M_CHECKOUT, []))
+                                 CheckoutMenu(chat_id, chain_cls, constants.M_CHECKOUT, []))
 
             m_settings_password = PasswordMenu(chat_id, chain_cls, self, constants.M_PASSWORD, f'{chain_cls.display_name}/{constants.M_SETTINGS}: {constants.S_PASSWORD}', None)
             m_settings_login = LoginMenu(chat_id, chain_cls, self, constants.M_LOGIN, f'{chain_cls.display_name}/{constants.M_SETTINGS}: {constants.S_LOGIN}', m_settings_password)
             m_settings_payment = CvvMenu(chat_id, chain_cls, self, constants.M_CVV,
                                          f'{chain_cls.display_name}/{constants.M_SETTINGS}: {constants.S_CVV}', None)
-            m_settings = Menu(chain_cls, constants.M_SETTINGS, [m_settings_login, m_settings_payment])
+            m_settings = Menu(chat_id, chain_cls, constants.M_SETTINGS, [m_settings_login, m_settings_payment])
             # update next menu once password or cvv entered
             m_settings_password.next_menu = m_settings
             m_settings_payment.next_menu = m_settings
 
-            m_chain = MainMenu(chain_cls, chain_cls.display_name, [m_auto_booking, m_book_and_checkout, m_book, m_checkout, m_settings])
+            m_chain = MainMenu(chat_id, chain_cls, chain_cls.display_name, [m_auto_booking, m_book_and_checkout, m_book, m_checkout, m_settings])
             m_chain_login = LoginMenu(chat_id, chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}: {constants.S_LOGIN}',
                                       PasswordMenu(chat_id, chain_cls, self, chain_cls.display_name, f'{chain_cls.display_name}: {constants.S_PASSWORD}',
                                                    m_chain))
@@ -77,7 +76,7 @@ class GroceriesBot:
             chain_menus.append(m_chain)
             chain_login_menus.append(m_chain_login)
 
-        self.root_menus[chat_id] = Menu(None, constants.M_MAIN, chain_login_menus)
+        self.root_menus[chat_id] = Menu(chat_id, None, constants.M_MAIN, chain_login_menus)
         self.root_menus[chat_id].register(self)
         for chain_menu in chain_menus:
             chain_menu.parent = self.root_menus[chat_id]

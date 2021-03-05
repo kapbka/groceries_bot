@@ -12,8 +12,8 @@ from app.bot.telegram.helpers import asynchronous
 
 
 class SlotsMenu(Menu):
-    def __init__(self, chain_cls, display_name: str, make_book: bool = True, make_checkout: bool = False):
-        super().__init__(chain_cls, display_name, [])
+    def __init__(self, chat_id, chain_cls, display_name: str, make_book: bool = True, make_checkout: bool = False):
+        super().__init__(chat_id, chain_cls, display_name, [])
         self.make_book = make_book
         self.make_checkout = make_checkout
 
@@ -33,7 +33,7 @@ class SlotsMenu(Menu):
             for i, sd in enumerate(slots):
                 if i == 0 or slot_day != sd.date():
                     slot_day = sd.date()
-                    m_day = SlotDayMenu(self.chain_cls, slot_day, get_pretty_slot_day_name(slot_day),
+                    m_day = SlotDayMenu(self.chat_id, self.chain_cls, slot_day, get_pretty_slot_day_name(slot_day),
                                         self.make_book, self.make_checkout)
                     m_day.parent = self
                     m_day.register(self.bot)
@@ -48,9 +48,9 @@ class SlotsMenu(Menu):
 
 
 class SlotDayMenu(Menu):
-    def __init__(self, chain_cls, slot_day: datetime.date, display_name: str,
+    def __init__(self, chat_id, chain_cls, slot_day: datetime.date, display_name: str,
                  make_book: bool = True, make_checkout: bool = False):
-        super().__init__(chain_cls, display_name, [], 30)
+        super().__init__(chat_id, chain_cls, display_name, [], 30)
         self.slot_day = slot_day
         self.make_book = make_book
         self.make_checkout = make_checkout
@@ -72,7 +72,7 @@ class SlotDayMenu(Menu):
                     slot_disp_name = get_pretty_slot_time_name(sd, self.chain_cls)
                     if sd == cur_slot:
                         slot_disp_name = constants.ENABLED_EMOJI + slot_disp_name
-                    m_slot = SlotTimeMenu(self.chain_cls, slot_disp_name, chain, sd, self.make_book, self.make_checkout)
+                    m_slot = SlotTimeMenu(self.chat_id, self.chain_cls, slot_disp_name, chain, sd, self.make_book, self.make_checkout)
                     m_slot.parent = self
                     m_slot.register(self.bot)
                     children.append(m_slot)
@@ -86,9 +86,9 @@ class SlotDayMenu(Menu):
 
 
 class SlotTimeMenu(Menu):
-    def __init__(self, chain_cls, display_name: str, chain, start_datetime: datetime,
+    def __init__(self, chat_id, chain_cls, display_name: str, chain, start_datetime: datetime,
                  make_book: bool, make_checkout: bool):
-        super().__init__(chain_cls, display_name, [], 40)
+        super().__init__(chat_id, chain_cls, display_name, [], 40)
         self.chain = chain
         self.start_datetime = start_datetime
         if not make_book and not make_checkout:

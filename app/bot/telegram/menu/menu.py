@@ -10,12 +10,14 @@ from app.bot.telegram.settings import Settings
 from app.bot.telegram import constants
 from app.log.exception_handler import handle_exception
 from app.log.status_bar import ProgressBarWriter
+from app.bot.telegram.chat_menu_handlers import ChatMenuHandlers
 
 
 class Menu:
     is_text_menu = False
 
-    def __init__(self, chain_cls, display_name: str, children: list, alignment_len: int = 22):
+    def __init__(self, chat_id, chain_cls, display_name: str, children: list, alignment_len: int = 22):
+        self.chat_id = chat_id
         self.chain_cls = chain_cls
         self.name = str(uuid.uuid4())
         self.display_name = display_name
@@ -29,7 +31,7 @@ class Menu:
     def register(self, bot):
         self.bot = bot
         logging.debug(f'register {self.display_name}, {self.name}')
-        bot.updater.dispatcher.add_handler(self.handler)
+        ChatMenuHandlers.add_handler(bot, self.chat_id, self.handler)
 
         for c in self.children:
             c.parent = self
@@ -102,7 +104,7 @@ class CheckoutMenu(Menu):
         if not cur_slot:
             raise ValueError(constants.E_SLOT_EXPIRED)
 
-        m_slot = CheckoutSlotMenu(self.chain_cls, get_pretty_slot_name(cur_slot, self.chain_cls), [])
+        m_slot = CheckoutSlotMenu(self.chat_id, self.chain_cls, get_pretty_slot_name(cur_slot, self.chain_cls), [])
         m_slot.register(self.bot)
         m_slot.parent = self.parent
 

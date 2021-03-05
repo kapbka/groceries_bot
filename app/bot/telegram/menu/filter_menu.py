@@ -11,11 +11,13 @@ from app.bot.telegram.settings import Settings
 from app.bot.telegram.helpers import get_message, get_pretty_filter_slot_time_name, asynchronous
 from app.bot.telegram import constants
 from app.log.exception_handler import handle_exception
+from app.bot.telegram.chat_menu_handlers import ChatMenuHandlers
 
 
 class FilterDaysMenu(Menu):
-    def __init__(self, chain_cls, display_name: str):
-        super().__init__(chain_cls, display_name, [])
+    def __init__(self, bot, chat_id, chain_cls, display_name: str):
+        super().__init__(chat_id, chain_cls, display_name, [])
+        self.bot = bot
 
     def _generate(self, message):
         logging.debug(f'self.display_name {self.display_name}')
@@ -23,13 +25,13 @@ class FilterDaysMenu(Menu):
         # 1. days of the week menus
         children = []
         for wd in range(7):
-            m_filter_day = FilterDayMenu(self.chain_cls, f'{str(WEEKDAYS(wd).name).capitalize()}', wd)
+            m_filter_day = FilterDayMenu(self.chat_id, self.chain_cls, f'{str(WEEKDAYS(wd).name).capitalize()}', wd)
             m_filter_day.parent = self
             m_filter_day.register(self.bot)
             children.append(m_filter_day)
 
         # 2. interval menu
-        m_interval = IntervalMenu(self.chain_cls, f'{constants.M_MIN_ORDER_INTERVAL} (up to {Settings.max_autobook_interval} days)')
+        m_interval = IntervalMenu(self.bot, self.chat_id, self.chain_cls, f'{constants.M_MIN_ORDER_INTERVAL} (up to {Settings.max_autobook_interval} days)')
         m_interval.parent = self
         m_interval.register(self.bot)
         children.append(m_interval)
@@ -39,7 +41,7 @@ class FilterDaysMenu(Menu):
             enabled_prefix = ENABLED_EMOJI
         else:
             enabled_prefix = DISABLED_EMOJI
-        m_auto_booking = EnabledMenu(self.chain_cls, f'{enabled_prefix} {constants.M_ENABLED}')
+        m_auto_booking = EnabledMenu(self.chat_id, self.chain_cls, f'{enabled_prefix} {constants.M_ENABLED}')
         m_auto_booking.parent = self
         m_auto_booking.register(self.bot)
         children.append(m_auto_booking)
@@ -62,8 +64,8 @@ class FilterDaysMenu(Menu):
 
 
 class FilterDayMenu(Menu):
-    def __init__(self, chain_cls, display_name: str, week_day: int):
-        super().__init__(chain_cls, display_name, [])
+    def __init__(self, chat_id, chain_cls, display_name: str, week_day: int):
+        super().__init__(chat_id, chain_cls, display_name, [])
 
         self.week_day = week_day
         self.start_time = chain_cls.slot_start_time
@@ -81,7 +83,7 @@ class FilterDayMenu(Menu):
             else:
                 slot_prefix = DISABLED_EMOJI
             slot_name = f'{slot_prefix} {get_pretty_filter_slot_time_name(st, self.chain_cls)}'
-            m_filter_slot = FilterTimeMenu(self.chain_cls, slot_name, self.week_day, st)
+            m_filter_slot = FilterTimeMenu(self.chat_id, self.chain_cls, slot_name, self.week_day, st)
             m_filter_slot.parent = self
             m_filter_slot.register(self.bot)
             children.append(m_filter_slot)
@@ -102,8 +104,8 @@ class FilterDayMenu(Menu):
 
 
 class FilterTimeMenu(Menu):
-    def __init__(self, chain_cls, display_name: str, week_day: int, day_time: int, alignment_len: int = 40):
-        super().__init__(chain_cls, display_name, [], alignment_len)
+    def __init__(self, chat_id, chain_cls, display_name: str, week_day: int, day_time: int, alignment_len: int = 40):
+        super().__init__(chat_id, chain_cls, display_name, [], alignment_len)
 
         self.week_day = week_day
         self.day_time = day_time
@@ -126,8 +128,8 @@ class FilterTimeMenu(Menu):
 
 
 class EnabledMenu(Menu):
-    def __init__(self, chain_cls, display_name: str, alignment_len: int = 10):
-        super().__init__(chain_cls, display_name, [], alignment_len)
+    def __init__(self, chat_id, chain_cls, display_name: str, alignment_len: int = 10):
+        super().__init__(chat_id, chain_cls, display_name, [], alignment_len)
 
     @asynchronous
     def display(self, message: Message):
@@ -151,8 +153,9 @@ class EnabledMenu(Menu):
 
 
 class IntervalMenu(Menu):
-    def __init__(self, chain_cls, display_name: str):
-        super().__init__(chain_cls, display_name, [])
+    def __init__(self, bot, chat_id, chain_cls, display_name: str):
+        super().__init__(chat_id, chain_cls, display_name, [])
+        self.bot = bot
 
     def _increment(self, update, callback):
         message = get_message(update)
@@ -169,13 +172,13 @@ class IntervalMenu(Menu):
 
     @asynchronous
     def display(self, message):
-        m_down_interval = Menu(self.chain_cls, constants.M_DECREASE, [])
-        m_interval_val = Menu(self.chain_cls, str(Settings(message.chat_id, self.chain_cls.name).ab_interval), [])
-        m_up_interval = Menu(self.chain_cls, constants.M_INCREASE, [])
+        m_down_interval = Menu(self.chat_id, self.chain_cls, constants.M_DECREASE, [])
+        m_interval_val = Menu(self.chat_id, self.chain_cls, str(Settings(message.chat_id, self.chain_cls.name).ab_interval), [])
+        m_up_interval = Menu(self.chat_id, self.chain_cls, constants.M_INCREASE, [])
 
-        self.bot.updater.dispatcher.add_handler(CallbackQueryHandler(handle_exception(self._decrement),
-                                                                     pattern=m_down_interval.name))
-        self.bot.updater.dispatcher.add_handler(CallbackQueryHandler(handle_exception(self._increment),
-                                                                     pattern=m_up_interval.name))
+        ChatMenuHandlers.add_handler(self.bot, self.chat_id, CallbackQueryHandler(handle_exception(self._decrement),
+                                                                                  pattern=m_down_interval.name))
+        ChatMenuHandlers.add_handler(self.bot, self.chat_id, CallbackQueryHandler(handle_exception(self._increment),
+                                                                                  pattern=m_up_interval.name))
 
         message.edit_text(self.display_name, reply_markup=self._keyboard([m_down_interval, m_interval_val, m_up_interval]))

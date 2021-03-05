@@ -9,14 +9,14 @@ from app.bot.telegram.chat_chain_cache import ChatChainCache
 from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram import constants
 from app.log.exception_handler import handle_exception
+from app.bot.telegram.chat_menu_handlers import ChatMenuHandlers
 
 
 class TextMenu(Menu):
     is_text_menu = True
 
     def __init__(self, chat_id, chain_cls, bot, display_name: str, text_message: str, next_menu: Menu = None):
-        super().__init__(chain_cls, display_name, [])
-        self.chat_id = chat_id
+        super().__init__(chat_id, chain_cls, display_name, [])
         self.text_message = text_message
         self.next_menu = next_menu
         if next_menu:
@@ -29,7 +29,7 @@ class TextMenu(Menu):
         if self.text_message not in bot.reply_menus[self.chat_id]:
             bot.reply_menus[self.chat_id][self.text_message] = self.handle_response
             wrapper = lambda u, c: self.display(get_message(u))
-            bot.updater.dispatcher.add_handler(CallbackQueryHandler(handle_exception(wrapper), pattern=self.name))
+            ChatMenuHandlers.add_handler(bot, self.chat_id, CallbackQueryHandler(handle_exception(wrapper), pattern=self.name))
             if self.next_menu:
                 self.next_menu.register(bot)
 
