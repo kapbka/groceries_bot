@@ -8,7 +8,7 @@ from app.bot.telegram.constants import ENABLED_EMOJI, DISABLED_EMOJI
 from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram.menu.text_menu import CvvMenu
 from app.bot.telegram.settings import Settings
-from app.bot.telegram.helpers import get_message, get_pretty_filter_slot_time_name
+from app.bot.telegram.helpers import get_message, get_pretty_filter_slot_time_name, asynchronous
 from app.bot.telegram import constants
 from app.log.exception_handler import handle_exception
 
@@ -54,6 +54,7 @@ class FilterDaysMenu(Menu):
 
         message.reply_text(self.display_name, reply_markup=self._keyboard(self.children))
 
+    @asynchronous
     def display(self, message):
         self._generate(message)
 
@@ -107,6 +108,7 @@ class FilterTimeMenu(Menu):
         self.week_day = week_day
         self.day_time = day_time
 
+    @asynchronous
     def display(self, message):
         wd = WEEKDAYS(self.week_day).name
         settings = Settings(message.chat_id, self.chain_cls.name)
@@ -127,6 +129,7 @@ class EnabledMenu(Menu):
     def __init__(self, chain_cls, display_name: str, alignment_len: int = 10):
         super().__init__(chain_cls, display_name, [], alignment_len)
 
+    @asynchronous
     def display(self, message: Message):
         settings = Settings(message.chat_id, self.chain_cls.name)
 
@@ -164,6 +167,7 @@ class IntervalMenu(Menu):
         settings.ab_interval = max(settings.ab_interval - 1, Settings.min_autobook_interval)
         self.display(message)
 
+    @asynchronous
     def display(self, message):
         m_down_interval = Menu(self.chain_cls, constants.M_DECREASE, [])
         m_interval_val = Menu(self.chain_cls, str(Settings(message.chat_id, self.chain_cls.name).ab_interval), [])

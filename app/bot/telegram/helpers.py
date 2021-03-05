@@ -4,6 +4,7 @@ from telegram import Update
 from app.constants import WEEKDAYS
 from app.bot.telegram.settings import Settings
 from app.bot.telegram.chat_chain_cache import ChatChainCache
+import threading
 
 
 def get_message(update: Update):
@@ -31,3 +32,11 @@ def get_pretty_slot_name(slot_start_date: datetime, chain_cls):
 
 def get_pretty_filter_slot_time_name(start_hour, chain_cls):
     return "{:02d}:00-{:02d}:00".format(start_hour, start_hour + chain_cls.slot_interval_hrs)
+
+
+def asynchronous(fn):
+    def inner(*args, **kwargs):
+        x = threading.Thread(target=fn, args=args)
+        x.start()
+
+    return inner

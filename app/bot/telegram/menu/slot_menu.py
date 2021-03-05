@@ -8,6 +8,7 @@ from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram.helpers import get_chain_instance, get_pretty_slot_day_name, get_pretty_slot_name, \
     get_pretty_slot_time_name
 from app.log.status_bar import ProgressBarWriter
+from app.bot.telegram.helpers import asynchronous
 
 
 class SlotsMenu(Menu):
@@ -16,6 +17,7 @@ class SlotsMenu(Menu):
         self.make_book = make_book
         self.make_checkout = make_checkout
 
+    @asynchronous
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}')
 
@@ -53,6 +55,7 @@ class SlotDayMenu(Menu):
         self.make_book = make_book
         self.make_checkout = make_checkout
 
+    @asynchronous
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}')
 
@@ -93,6 +96,7 @@ class SlotTimeMenu(Menu):
         self.make_book = make_book
         self.make_checkout = make_checkout
 
+    @asynchronous
     def display(self, message):
         logging.debug(f'self.display_name {self.display_name}')
 
