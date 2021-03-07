@@ -98,12 +98,13 @@ class GroceriesBot:
     def handle_text(self, update: Update, context: CallbackContext):
         message = get_message(update)
 
-        # reply handler call
-        self.reply_menus[message.chat_id][message.reply_to_message.text](message)
+        if message.reply_to_message:
+            # reply handler call
+            self.reply_menus[message.chat_id][message.reply_to_message.text](message)
 
-        # the previous invitation
-        if message.reply_to_message.text:
-            message.reply_to_message.delete()
+            # the previous invitation
+            if message.reply_to_message.text:
+                message.reply_to_message.delete()
 
-        # the current user's input
-        message.delete()
+            # the current user's input
+            message.delete()
