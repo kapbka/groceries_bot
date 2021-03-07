@@ -54,13 +54,13 @@ class TimeoutException(AppException):
 
 class NoOrdersException(AppException):
     internal_err_msg = 'No orders for this profile'
-    user_err_msg = 'No completed orders found in your profile. ' \
+    user_err_msg = 'No completed orders found in your profile to fill in your basket basket. ' \
                    'Please fill in the basket manually via mobile application or website'
 
 
 class NoOrdersSlotBookedException(AppException):
     internal_err_msg = 'No orders for the profile'
-    user_err_msg = 'No completed orders found, but the slot has been booked. ' \
+    user_err_msg = 'No completed orders found to fill in your basket, but the slot has been booked. ' \
                    'Please fill in the basket manually via mobile application/website'
 
 
@@ -72,7 +72,7 @@ class NoAddressException(AppException):
 
 class NoPaymentCardException(AppException):
     internal_err_msg = 'No linked payment card to the profile'
-    user_err_msg = 'No cards added to your profile. Please, adjust your profile properly via mobile application/website'
+    user_err_msg = 'No cards added to your profile. Please, add a payment card via mobile application/website'
 
 
 class TrolleyException(AppException):

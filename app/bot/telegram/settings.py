@@ -30,7 +30,11 @@ class Settings(object):
             else:
                 return None
         elif item == 'cvv':
-            return self.db_obj.creds.cvv
+            cvv = self.db_obj.creds.cvv
+            if cvv:
+                return int(decrypt(cvv, str(self.chat_id) + self.chain_name))
+            else:
+                return None
         elif item == 'ab_enabled':
             return self.db_obj.autobook.enabled
         elif item == 'ab_interval':
@@ -50,7 +54,7 @@ class Settings(object):
             elif key == 'cvv':
                 if value and (not int(value) or len(value) != 3):
                     raise ValueError(f'Invalid cvv {value}, must be 3 digit number!')
-                self.db_obj.creds.cvv = int(value)
+                self.db_obj.creds.cvv = encrypt(str(value), str(self.chat_id) + self.chain_name)
             elif key == 'ab_enabled':
                 self.db_obj.autobook.enabled = value
             elif key == 'ab_interval':

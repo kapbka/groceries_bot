@@ -151,13 +151,14 @@ class Tesco:
 
         # generate slot id
         slot_end = slot_begin + datetime.timedelta(hours=self.slot_interval_hrs)
-        time_format = "%Y-%m-%dT%H:%M:%SZ"
-        slot_id = f"grid_{slot_begin.strftime(time_format)}_{slot_end.strftime(time_format)}"
+        time_format = "%Y-%m-%dT%H:%M:%S"
+        slot_id = f"grid_{slot_begin.strftime(time_format)}"
 
         # load week page for this slot
         self._load(f"groceries/en-GB/slots/delivery/{slot_begin.date()}?slotGroup=1")
 
-        button = self.driver.find_element_by_id(slot_id).find_element_by_xpath('..')
+        slot_elem = self.driver.find_element_by_xpath(f"//a[contains(@id, '{slot_id}')]")
+        button = slot_elem.find_element_by_xpath('..')
         button.click()
 
         self._current_slot = slot_begin

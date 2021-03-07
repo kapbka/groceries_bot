@@ -93,8 +93,7 @@ class CheckoutMenu(Menu):
         self.parent = self.parent.parent
         super().register(bot)
 
-    @asynchronous
-    def display(self, message):
+    def _create_slot_menu(self, message):
         logging.debug(f'self.display_name {self.display_name}, self.keyboard() {self._keyboard(self.children)}')
 
         chain = get_chain_instance(message.chat_id, self.chain_cls)
@@ -107,7 +106,17 @@ class CheckoutMenu(Menu):
         m_slot.register(self.bot)
         m_slot.parent = self.parent
 
+        return m_slot
+
+    @asynchronous
+    def display(self, message):
+        m_slot = self._create_slot_menu(message)
         message.edit_text(self.display_name, reply_markup=self._keyboard([m_slot]))
+
+    @asynchronous
+    def create(self, message):
+        m_slot = self._create_slot_menu(message)
+        message.reply_text(self.display_name, reply_markup=self._keyboard([m_slot]))
 
 
 class CheckoutSlotMenu(Menu):

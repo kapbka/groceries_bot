@@ -5,7 +5,7 @@ from mongoengine import Document, EmbeddedDocument, EmbeddedDocumentField, Embed
 class Cred(EmbeddedDocument):
     login = StringField(required=True)
     password = BinaryField()
-    cvv = IntField()
+    cvv = BinaryField()
 
 
 class AutoBook(EmbeddedDocument):
