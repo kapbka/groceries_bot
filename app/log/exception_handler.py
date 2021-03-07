@@ -5,6 +5,7 @@ import logging
 from app.log import app_exception
 from app.log.status_bar import PROGRESS_LOG, StatusBarWriter
 from app.constants import LOG_CHAT_ID
+import traceback
 
 
 # used as a decorator for all menu display calls (handlers)
@@ -38,10 +39,9 @@ def handle_exception(fn):
                                  text=str(message.chat_id) + ': ' + ex.traceback)
         except:
             with StatusBarWriter(message) as _:
-                ex_type, ex, tb = sys.exc_info()
                 logging.exception('Unexpected error occurred')
                 PROGRESS_LOG.info('An error occurred, please try later or contact support @kapbka')
                 bot.send_message(chat_id=LOG_CHAT_ID,
-                                 text=str(message.chat_id) + ': ' + str(tb))
+                                 text=str(message.chat_id) + ': ' + traceback.format_exc())
 
     return inner

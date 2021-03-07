@@ -35,7 +35,13 @@ class GroceriesBot:
         connect()
 
     def create_menu(self, update: Update, context: CallbackContext):
-        chat_id = get_message(update).chat_id
+        message = get_message(update)
+        chat_id = message.chat_id
+
+        if chat_id < 0:
+            message.bot.send_message(chat_id=chat_id,
+                                     text='Group chats are not supported yet.')
+            return
 
         # text menus
         self.reply_menus.pop(chat_id, None)
