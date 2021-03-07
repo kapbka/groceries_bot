@@ -4,8 +4,7 @@ import uuid
 import logging
 from telegram.ext import CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from app.bot.telegram.helpers import get_message
-from app.bot.telegram.helpers import get_chain_instance, get_pretty_slot_name, asynchronous
+from app.bot.telegram.helpers import get_message, get_chain_instance, get_pretty_slot_name, asynchronous
 from app.bot.telegram.settings import Settings
 from app.bot.telegram import constants
 from app.log.exception_handler import handle_exception

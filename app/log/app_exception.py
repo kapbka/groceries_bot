@@ -51,3 +51,30 @@ class TimeoutException(AppException):
     internal_err_msg = 'Connection timeout'
     user_err_msg = 'Connection timeout occured, please /start again'
 
+
+class NoOrdersException(AppException):
+    internal_err_msg = 'No orders for this profile'
+    user_err_msg = 'No completed orders found in your profile. ' \
+                   'Please fill in the basket manually via mobile application or website'
+
+
+class NoOrdersSlotBookedException(AppException):
+    internal_err_msg = 'No orders for the profile'
+    user_err_msg = 'No completed orders found, but the slot has been booked. ' \
+                   'Please fill in the basket manually via mobile application/website'
+
+
+class NoAddressException(AppException):
+    internal_err_msg = 'No address linked to the profile'
+    user_err_msg = 'No address linked to your profile. ' \
+                   'Please link the necessary address to your profile manually via mobile application/website'
+
+
+class NoPaymentCardException(AppException):
+    internal_err_msg = 'No linked payment card to the profile'
+    user_err_msg = 'No cards added to your profile. Please, adjust your profile properly via mobile application/website'
+
+
+class TrolleyException(AppException):
+    internal_err_msg = 'Error during query the trolley'
+    user_err_msg = 'There are some problems with trolley loading. Please try later'

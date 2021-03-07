@@ -44,7 +44,6 @@ class Waitrose:
             start_date, end_date = slot.book_first_available_slot()
 
     def checkout(self, cvv):
-        res = None
         # if a trolley is empty will try to fill it in with items from the last order
         if self.session.is_trolley_empty():
             self.session.merge_last_order_to_trolley()
@@ -52,7 +51,6 @@ class Waitrose:
         # if cvv is passed proceed with checkout not to lose the slot
         if self.cvv:
             card_list = self.session.get_payment_card_list()
-            # TODO: exception if card_list is empty
             res = self.session.checkout_trolley(self.session.customerOrderId, card_list[0], cvv)
         return str(self.session.customerOrderId)
 

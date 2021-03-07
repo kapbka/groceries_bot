@@ -2,6 +2,7 @@
 
 import logging
 import time
+import telegram
 from telegram import Message
 from datetime import datetime
 from logging import StreamHandler
@@ -27,10 +28,14 @@ class StatusBarWriter(StreamHandler):
         self.log.addHandler(self)
 
     def emit(self, record):
+        error = '[ ' + EXL_MARK_EMOJI + self.format(record) + ' ]'
         # rtrim any previous status in square bracets and add new information
-        text = re.sub(': \\[.+?\\]', '', self.message.text) + ': [ ' + EXL_MARK_EMOJI + self.format(record) + ' ]'
+        text = re.sub(': \\[.+?\\]', '', self.message.text) + ': ' + error
         logging.debug(f'emit {text}')
-        self.message.edit_text(text, reply_markup=self.message.reply_markup)
+        try:
+            self.message.edit_text(text, reply_markup=self.message.reply_markup)
+        except telegram.error.BadRequest as ex:
+            self.message.reply_text(error, reply_markup=self.message.reply_markup)
 
     def __enter__(self):
         return self

@@ -105,3 +105,249 @@ CURRENT_SLOT_QUERY = """
                 }
             }
         """
+
+TROLLEY_QUERY = """
+            query getTrolley($orderId: ID!) {
+              getTrolley(orderId: $orderId) {
+                checkoutReadiness {
+                  orderTypeValid
+                  slotTypeValid
+                }
+                instantCheckout
+                itemsReservable
+                products {
+                  barCode
+                  brandName
+                  categories {
+                    categoryIds
+                    id
+                    name
+                    parentId
+                    subCategories
+                  }
+                  contents {
+                    cookingStatus
+                  }
+                  currentSaleUnitPrice {
+                    price {
+                      amount
+                      currencyCode
+                    }
+                    quantity {
+                      amount
+                      uom
+                    }
+                  }
+                  defaultQuantity {
+                    amount
+                    uom
+                  }
+                  displayPrice
+                  displayPriceEstimated
+                  displayPriceQualifier
+                  formattedPriceRange
+                  formattedWeightRange
+                  id
+                  leadTime
+                  lineNumber
+                  maxPersonalisedMessageLength
+                  name
+                  persistDefault
+                  productType
+                  promotion {
+                    groups {
+                      threshold
+                      name
+                      lineNumbers
+                    }
+                    myWaitrosePromotion
+                    promotionDescription
+                    promotionExpiryDate
+                    promotionId
+                    promotionTypeCode
+                    promotionUnitPrice {
+                      amount
+                      currencyCode
+                    }
+                    promotionalPricePerUnit
+                    pyoPromotion
+                  }
+                  promotions {
+                    groups {
+                      threshold
+                      name
+                      lineNumbers
+                    }
+                    myWaitrosePromotion
+                    promotionDescription
+                    promotionExpiryDate
+                    promotionId
+                    promotionTypeCode
+                    promotionUnitPrice {
+                      amount
+                      currencyCode
+                    }
+                    promotionalPricePerUnit
+                    pyoPromotion
+                  }
+                  restriction {
+                    availableDates {
+                      restrictionId
+                      startDate
+                      endDate
+                      cutOffDate
+                    }
+                  }
+                  resultType
+                  reviews {
+                    averageRating
+                    reviewCount
+                  }
+                  servings {
+                    max
+                    min
+                  }
+                  size
+                  thumbnail
+                  typicalWeight {
+                    amount
+                    uom
+                  }
+                  weights {
+                    perUomQualifier
+                    pricePerUomQualifier
+                    uoms
+                  }
+                  productImageUrls {
+                    small
+                    medium
+                    large
+                    extraLarge
+                  }
+                }
+                slotChangeable
+                trolley {
+                  amendingOrder
+                  conflicts {
+                    itemId
+                    productId
+                    messages
+                    priority
+                    outOfStock
+                    resolutionActions
+                    prohibitedActions
+                    type
+                    slotOptionDates {
+                      date
+                      type
+                    }
+                  }
+                  orderId
+                  slot {
+                    branchId
+                    serviceCounterAllowed
+                    slotDate
+                    slotEndTime
+                    slotStartTime
+                    slotType
+                  }
+                  trolleyItems {
+                    canSubstitute
+                    lineNumber
+                    noteToShopper
+                    personalisedMessage
+                    productId
+                    quantity {
+                      amount
+                      uom
+                    }
+                    reservedQuantity
+                    retailPrice {
+                      price {
+                        amount
+                        currencyCode
+                      }
+                      quantity {
+                        amount
+                        uom
+                      }
+                    }
+                    saving {
+                      amount
+                      currencyCode
+                    }
+                    totalPrice {
+                      amount
+                      currencyCode
+                    }
+                    triggeredPromotions
+                    trolleyItemId
+                    untriggeredPromotions
+                    productSummary {
+                      availableDays
+                      containsAlcohol
+                      deliveryDaysEarly
+                      deliveryOnDay
+                      productShelfLife
+                      productType
+                      substitutionsProhibited
+                      supplierOrder
+                    }
+                  }
+                  trolleyTotals {
+                    collectionMinimumOrderValue {
+                      amount
+                      currencyCode
+                    }
+                    deliveryMinimumOrderValue {
+                      amount
+                      currencyCode
+                    }
+                    entertainingMinimumOrderValue {
+                      amount
+                      currencyCode
+                    }
+                    minimumOrderValue {
+                      amount
+                      currencyCode
+                    }
+                    minimumSpendThresholdMet
+                    savingsFromIncentives {
+                      amount
+                      currencyCode
+                    }
+                    savingsFromOffers {
+                      amount
+                      currencyCode
+                    }
+                    savingsFromOffersAndIncentives {
+                      amount
+                      currencyCode
+                    }
+                    savingsFromOrderLines {
+                      amount
+                      currencyCode
+                    }
+                    savingsFromMyWaitrose {
+                      amount
+                      currencyCode
+                    }
+                    totalEstimatedCost {
+                      amount
+                      currencyCode
+                    }
+                    trolleyItemCounts {
+                      hardConflicts
+                      noConflicts
+                      softConflicts
+                    }
+                  }
+                }
+                failures {
+                  field
+                  message
+                  type
+                }
+              }
+            }
+        """

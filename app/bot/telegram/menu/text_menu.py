@@ -10,6 +10,7 @@ from app.bot.telegram.menu.menu import Menu
 from app.bot.telegram import constants
 from app.log.exception_handler import handle_exception
 from app.bot.telegram.chat_menu_handlers import ChatMenuHandlers
+from app.bot.telegram.helpers import get_chain_instance
 
 
 class TextMenu(Menu):
@@ -71,6 +72,12 @@ class PasswordMenu(TextMenu):
         Settings(message.chat_id, self.chain_cls.name).password = message.text
 
         ChatChainCache.invalidate(message.chat_id, self.chain_cls)
+
+        try:
+            get_chain_instance(message.chat_id, self.chain_cls)
+        except:
+            Settings(message.chat_id, self.chain_cls.name).password = ''
+            raise
 
         if not self.next_menu.is_text_menu:
             self.next_menu.create(message)

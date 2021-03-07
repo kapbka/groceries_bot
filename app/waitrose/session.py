@@ -54,7 +54,10 @@ class Session:
                 headers=self.headers if self.token else {})
 
     def get_address_list(self):
-        return requests.get(constants.LAST_ADDRESS_ID_URL, headers=self.headers).json()
+        r = requests.get(constants.LAST_ADDRESS_ID_URL, headers=self.headers).json()
+        if not r:
+            raise app_exception.NoAddressException
+        return r
 
     def get_order_dict(self):
         r = requests.get(constants.ORDER_LIST_URL, headers=self.headers).json()
@@ -62,14 +65,15 @@ class Session:
 
     def get_last_order_date(self):
         r = requests.get(constants.ORDER_LIST_URL, headers=self.headers).json()
-        return datetime.strptime(r['content'][0]['lastUpdated'], '%Y-%m-%dT%H:%M:%S.%fZ').date() if r['content'] else None
+        if not r['content']:
+            raise app_exception.NoOrdersException
+        return datetime.strptime(r['content'][0]['lastUpdated'], '%Y-%m-%dT%H:%M:%S.%fZ').date()
 
     def merge_last_order_to_trolley(self):
         try:
             order = next(iter(self.get_order_dict().values()))
         except StopIteration:
-            raise ValueError('No orders found, but the slot has been booked. '
-                             'Please fill in the basket manually via Waitrose mobile application or website')
+            raise app_exception.NoOrdersSlotBookedException
 
         line_num_qty_dict = {ol['lineNumber']: ol['quantity'] for ol in order['orderLines']}
         order_lines = '+'.join(ol for ol in line_num_qty_dict.keys())
@@ -94,14 +98,17 @@ class Session:
             raise ValueError(items['message'])
 
     def is_trolley_empty(self):
-        r = requests.get(constants.PRODUCT_LIST_URL.format(self.customerOrderId), headers=self.headers).json()
-        return not r['trolley']['trolleyItems']
+        variables = {"orderId": str(self.customerOrderId)}
+        trolley = self.execute(constants.TROLLEY_QUERY, variables)
+        failures = trolley['data']['getTrolley'].get('failures') or {}
+        if failures.get('message'):
+            raise app_exception.TrolleyException
+        return not trolley['data']['getTrolley']['products']
 
     def get_payment_card_list(self):
         card_list = requests.get(constants.PAYMENTS_CARDS_URL, headers=self.headers).json()
         if not card_list:
-            raise ValueError('No cards added to your Waitrose profile. Please, adjust your profile properly '
-                             'via Waitrose mobile application or website')
+            raise app_exception.NoPaymentCardException
         return card_list
 
     def get_card_id(self, card_num: int):

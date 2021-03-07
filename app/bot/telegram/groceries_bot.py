@@ -15,6 +15,7 @@ from app.bot.telegram import constants
 from app.db.api import connect
 from collections import defaultdict
 from app.bot.telegram.chat_menu_handlers import ChatMenuHandlers
+from app.log.exception_handler import handle_exception
 
 
 class GroceriesBot:
@@ -85,7 +86,7 @@ class GroceriesBot:
 
     def run(self):
         self.updater.dispatcher.add_handler(CommandHandler('start', self.create_menu))
-        self.updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, self.handle_text))
+        self.updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_exception(self.handle_text)))
         self.updater.start_polling()
 
     def handle_text(self, update: Update, context: CallbackContext):

@@ -9,28 +9,39 @@ from app.constants import LOG_CHAT_ID
 
 # used as a decorator for all menu display calls (handlers)
 def handle_exception(fn):
-    def inner(update, callback):
+    def inner(update_or_self, callback_or_message):
+        if isinstance(update_or_self, telegram.Update):
+            if update_or_self.message:
+                bot = update_or_self.message.bot
+                message = update_or_self.message
+            else:
+                bot = update_or_self.callback_query.bot
+                message = update_or_self.callback_query.message
+        else:
+            bot = callback_or_message.bot
+            message = callback_or_message
+
         try:
-            return fn(update, callback)
+            return fn(update_or_self, callback_or_message)
         except telegram.error.TimedOut as ex:
-            with StatusBarWriter(update.callback_query.message) as _:
+            with StatusBarWriter(message) as _:
                 logging.exception('Timeout occurred')
                 txt = 'Timeout has occurred, please /start bot again'
                 PROGRESS_LOG.info(txt)
-                update.callback_query.bot.send_message(chat_id=LOG_CHAT_ID,
-                                                       text=str(update.callback_query.message.chat_id) + ': ' + txt)
-        except app_exception.LoginFailException as ex:
-            with StatusBarWriter(update.callback_query.message) as _:
-                logging.exception('Client error')
+                bot.send_message(chat_id=LOG_CHAT_ID,
+                                 text=str(message.chat_id) + ': ' + txt)
+        except app_exception.AppException as ex:
+            with StatusBarWriter(message) as _:
+                logging.exception(ex.internal_err_msg)
                 PROGRESS_LOG.info(ex.user_err_msg)
-                update.callback_query.bot.send_message(chat_id=LOG_CHAT_ID,
-                                                       text=str(update.callback_query.message.chat_id) + ': ' + ex.traceback)
+                bot.send_message(chat_id=LOG_CHAT_ID,
+                                 text=str(message.chat_id) + ': ' + ex.traceback)
         except:
-            with StatusBarWriter(update.callback_query.message) as _:
+            with StatusBarWriter(message) as _:
                 ex_type, ex, tb = sys.exc_info()
                 logging.exception('Unexpected error occurred')
                 PROGRESS_LOG.info('An error occurred, please try later or contact support @kapbka')
-                update.callback_query.bot.send_message(chat_id=LOG_CHAT_ID,
-                                                       text=str(update.callback_query.message.chat_id) + ': ' + str(tb))
+                bot.send_message(chat_id=LOG_CHAT_ID,
+                                 text=str(message.chat_id) + ': ' + str(tb))
 
     return inner
