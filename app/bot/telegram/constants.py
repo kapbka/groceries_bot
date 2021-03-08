@@ -4,6 +4,7 @@
 ENABLED_EMOJI = '\u2705'
 DISABLED_EMOJI = '\u25fb'
 BACK_EMOJI = '\u21a9'
+# some magic but make 5 digits emoji work
 HELP_EMOJI = '\uD83D\uDCD6'.encode('utf-16', 'surrogatepass').decode('utf-16')
 
 

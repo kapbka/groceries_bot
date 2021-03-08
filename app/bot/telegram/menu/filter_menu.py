@@ -19,7 +19,7 @@ class FilterDaysMenu(Menu):
         super().__init__(chat_id, chain_cls, display_name, [])
         self.bot = bot
 
-    def _generate(self, message):
+    def _generate_children(self, message):
         logging.debug(f'self.display_name {self.display_name}')
 
         # 1. days of the week menus
@@ -57,15 +57,14 @@ class FilterDaysMenu(Menu):
             child.unregister()
         self.children = children
 
+    @asynchronous
     def create(self, message):
-        self._generate(message)
-
+        self._generate_children(message)
         message.reply_text(self.display_name, reply_markup=self._keyboard(self.children))
 
     @asynchronous
     def display(self, message):
-        self._generate(message)
-
+        self._generate_children(message)
         message.edit_text(self.display_name, reply_markup=self._keyboard(self.children))
 
     @staticmethod

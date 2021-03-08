@@ -17,8 +17,7 @@ class SlotsMenu(Menu):
         self.make_book = make_book
         self.make_checkout = make_checkout
 
-    @asynchronous
-    def display(self, message):
+    def _generate_children(self, message):
         logging.debug(f'self.display_name {self.display_name}')
 
         with ProgressBarWriter(message) as _:
@@ -49,7 +48,14 @@ class SlotsMenu(Menu):
                 child.unregister()
             self.children = children
 
-        # 4. adding text
+    @asynchronous
+    def create(self, message):
+        self._generate_children(message)
+        message.reply_text(self.display_name, reply_markup=self._keyboard(self.children))
+
+    @asynchronous
+    def display(self, message):
+        self._generate_children(message)
         message.edit_text(self.display_name, reply_markup=self._keyboard(self.children))
 
     def help(self):
