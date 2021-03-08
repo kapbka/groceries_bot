@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from app.bot.telegram import constants
 from app.bot.telegram.settings import Settings
-from app.bot.telegram.menu.menu import Menu
+from app.bot.telegram.menu.menu import Menu, HelpMenu
 from app.bot.telegram.helpers import get_chain_instance, get_pretty_slot_day_name, get_pretty_slot_name, \
     get_pretty_slot_time_name
 from app.log.status_bar import ProgressBarWriter
@@ -39,12 +39,24 @@ class SlotsMenu(Menu):
                     m_day.register(self.bot)
                     children.append(m_day)
 
+            # 3. add Help menu
+            m_help = HelpMenu(self.chat_id, self.chain_cls, constants.M_HELP, [])
+            m_help.parent = self
+            m_help.register(self.bot)
+            children.append(m_help)
+
             for child in self.children:
                 child.unregister()
             self.children = children
 
-        # 3. adding text
+        # 4. adding text
         message.edit_text(self.display_name, reply_markup=self._keyboard(self.children))
+
+    def help(self):
+        if self.make_checkout:
+            return constants.H_BOOK_CHECKOUT
+        else:
+            return constants.H_BOOK
 
 
 class SlotDayMenu(Menu):

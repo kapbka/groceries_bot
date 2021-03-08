@@ -6,7 +6,7 @@ from telegram.ext import Updater
 from telegram import Update
 from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackContext
 # bot
-from app.bot.telegram.menu.menu import Menu, MainMenu, CheckoutMenu
+from app.bot.telegram.menu.menu import Menu, MainMenu, CheckoutMenu, SettingsMenu
 from app.bot.telegram.menu.text_menu import LoginMenu, PasswordMenu, CvvMenu
 from app.bot.telegram.menu.slot_menu import SlotsMenu
 from app.bot.telegram.menu.filter_menu import FilterDaysMenu
@@ -68,7 +68,7 @@ class GroceriesBot:
             m_settings_login = LoginMenu(chat_id, chain_cls, self, constants.M_LOGIN, f'{chain_cls.display_name}/{constants.M_SETTINGS}: {constants.S_LOGIN}', m_settings_password)
             m_settings_payment = CvvMenu(chat_id, chain_cls, self, constants.M_CVV,
                                          f'{chain_cls.display_name}/{constants.M_SETTINGS}: {constants.S_CVV}', None)
-            m_settings = Menu(chat_id, chain_cls, constants.M_SETTINGS, [m_settings_login, m_settings_payment])
+            m_settings = SettingsMenu(chat_id, chain_cls, constants.M_SETTINGS, [m_settings_login, m_settings_payment])
             # update next menu once password or cvv entered
             m_settings_password.next_menu = m_settings
             m_settings_payment.next_menu = m_settings
@@ -90,9 +90,18 @@ class GroceriesBot:
 
         return self.root_menus[chat_id].create(get_message(update))
 
+    @staticmethod
+    def help(update: Update, context: CallbackContext):
+        message = get_message(update)
+
+        message.bot.send_message(message.chat_id, constants.H_HELP)
+
     def run(self):
         self.updater.dispatcher.add_handler(CommandHandler('start', self.create_menu))
         self.updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_exception(self.handle_text)))
+
+        self.updater.dispatcher.add_handler(CommandHandler('help', self.help))
+
         self.updater.start_polling()
 
     def handle_text(self, update: Update, context: CallbackContext):

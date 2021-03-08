@@ -5,7 +5,7 @@ from telegram.ext import CallbackQueryHandler
 from app.constants import WEEKDAYS
 from telegram import Message
 from app.bot.telegram.constants import ENABLED_EMOJI, DISABLED_EMOJI
-from app.bot.telegram.menu.menu import Menu
+from app.bot.telegram.menu.menu import Menu, HelpMenu
 from app.bot.telegram.menu.text_menu import CvvMenu
 from app.bot.telegram.settings import Settings
 from app.bot.telegram.helpers import get_message, get_pretty_filter_slot_time_name, asynchronous
@@ -46,6 +46,12 @@ class FilterDaysMenu(Menu):
         m_auto_booking.register(self.bot)
         children.append(m_auto_booking)
 
+        # 4. Help menu
+        m_help = HelpMenu(self.chat_id, self.chain_cls, constants.M_HELP, [])
+        m_help.parent = self
+        m_help.register(self.bot)
+        children.append(m_help)
+
         # unregister if we need to redraw the menu
         for child in self.children:
             child.unregister()
@@ -61,6 +67,10 @@ class FilterDaysMenu(Menu):
         self._generate(message)
 
         message.edit_text(self.display_name, reply_markup=self._keyboard(self.children))
+
+    @staticmethod
+    def help():
+        return constants.H_AUTOBOOKING
 
 
 class FilterDayMenu(Menu):
