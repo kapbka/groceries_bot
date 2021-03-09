@@ -4,7 +4,7 @@
 ENABLED_EMOJI = '\u2705'
 DISABLED_EMOJI = '\u25fb'
 BACK_EMOJI = '\u21a9'
-# some magic but make 5 digits emoji work
+# some magic but makes 5 digit emoji work
 HELP_EMOJI = '\uD83D\uDCD6'.encode('utf-16', 'surrogatepass').decode('utf-16')
 
 
@@ -42,7 +42,7 @@ S_NO_MATCHING_SLOT = 'No matching slot found!'
 S_SLOT_FOUND = 'Matching slot found'
 
 # errors/exceptions
-E_SLOT_EXPIRED = 'The booked slot has expired, please book a new slot'
+E_SLOT_EXPIRED = 'The booked slot has expired, please book a new slot.'
 E_NO_ACTION = 'At least one action required: booking or checkout!'
 
 # help
@@ -58,9 +58,9 @@ H_MAIN = f'{HELP_EMOJI}\n\n' \
          'Settings - adjust login/password or payment details to login into your chain profile.'
 
 H_AUTOBOOKING = f'{HELP_EMOJI}\n\n' \
-                'Days of the week and time slots - day of the week and time for delivery \n\n' \
-                'Minimal order interval - minimal interval between orders (for example, 7 is once a week). \n\n' \
-                'Enabled - a checkbox to enable autobooking.\n\n'
+                'Days of the week and time slots - a day of the week and time for delivery. \n\n' \
+                'Minimal order interval - minimal interval in days between orders (for example, 7 is once a week). \n\n' \
+                'Enabled - a checkbox to enable autobooking functionality.\n\n'
 
 H_BOOK_CHECKOUT = f'{HELP_EMOJI}\n\n' \
                   'Chose a day of the week and time to book and check out a delivery slot.'
@@ -69,7 +69,7 @@ H_BOOK = f'{HELP_EMOJI}\n\n' \
          'Chose a day of the week and time to book a delivery slot.'
 
 H_CHECKOUT = f'{HELP_EMOJI}\n\n' \
-             'Press the previously booked slot to make a checkout.'
+             'Press the booked slot to make a checkout.'
 
 H_SETTINGS = f'{HELP_EMOJI}\n\n' \
              'Login - change/update your chain specific credentials.\n\n' \

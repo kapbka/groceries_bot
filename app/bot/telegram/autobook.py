@@ -53,7 +53,8 @@ class Autobook(object):
     def do_autobook(self):
         data = list(Chain.objects())
         for chat_chain in data:
-            if not chat_chain.autobook.enabled:
+            # skip if disabled or a group chat
+            if not chat_chain.autobook.enabled or chat_chain.chat_id < 0:
                 continue
             chain_cls = eval(chat_chain.name.capitalize())
             chain = get_chain_instance(chat_chain.chat_id, chain_cls)
