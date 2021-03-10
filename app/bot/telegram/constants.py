@@ -63,7 +63,7 @@ H_AUTOBOOKING = f'{HELP_EMOJI}\n\n' \
                 'Enabled - a checkbox to enable autobooking functionality.\n\n'
 
 H_BOOK_CHECKOUT = f'{HELP_EMOJI}\n\n' \
-                  'Chose a day of the week and time to book and check out a delivery slot.'
+                  'Choose a day of the week and time to book and check out a delivery slot.'
 
 H_BOOK = f'{HELP_EMOJI}\n\n' \
          'Chose a day of the week and time to book a delivery slot.'
