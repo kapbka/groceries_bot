@@ -1,84 +1,15 @@
-# constants for the utility
+# constants for the utils
+from enum import IntEnum
 
 
-SESSION_ENDPOINT_URL = "https://www.waitrose.com/api/graphql-prod/graph/live"
+WEEKDAYS = IntEnum('Weekdays', 'mon tue wed thu fri sat sun', start=0)
 
-SESSION_QUERY = """
-            mutation($session: SessionInput) {      
-                  generateSession(session: $session) {
-                          accessToken
-                          customerId
-                          customerOrderId
-                          customerOrderState
-                          defaultBranchId
-                          expiresIn
-                          permissions
-                          principalId
-                          failures{
-                                type
-                                message
-                          }
-                  }
-            }
-        """
+CHAIN_INTERVAL_HRS = 1
 
-SLOT_QUERY = """
-            query slotDays($slotDaysInput: SlotDaysInput) {  
-                slotDays(slotDaysInput: $slotDaysInput) {
-                    content {
-                        id
-                        branchId
-                        slotType
-                        date
-                        slots {
-                            slotId: id
-                            startDateTime
-                            endDateTime
-                            shopByDateTime
-                            slotStatus: status
-                        }
-                    }
-                    links {
-                        rel
-                        title
-                        href
-                    }
-                    failures {
-                        message
-                        type
-                    }
-                }
-            }
-        """
+# Fernet.generate_key()
+APP_BASE64_KEY = b'MXueuoA52O4a8DL8GjTNMDmtny8Wdc_rc3S_7bHSA6Y='
 
-BOOK_SLOT_QUERY = """
-            mutation($bookSlotInput: BookSlotInput) {
-                bookSlot(bookSlotInput: $bookSlotInput) {
-                    amendOrderCutoffDateTime
-                    orderCutoffDateTime
-                    shopByDateTime
-                    slotExpiryDateTime
-                    failures {
-                        message
-                        type
-                    }
-                }
-            }
-        """
 
-CURRENT_SLOT_QUERY = """
-            "query": "query currentSlot($currentSlotInput: CurrentSlotInput) {
-                currentSlot(currentSlotInput: $currentSlotInput) {
-                    slotType
-                    branchId
-                    addressId
-                    postcode
-                    startDateTime
-                    endDateTime
-                    expiryDateTime
-                    orderCutoffDateTime
-                    amendOrderCutoffDateTime
-                    shopByDateTime
-                }
-            }
-"""
+EXL_MARK_EMOJI = '\u2757'
+
+LOG_CHAT_ID = -576238581
