@@ -29,3 +29,12 @@ services:
     depends_on:
       - chrome
       - selenium-hub
+
+  autobook:
+    image: karbka/groceries-bot:latest
+    command: [ "python", "./app/bot/telegram/autobook.py"]
+    restart: always
+    depends_on:
+      - groceries-bot
+      - chrome
+      - selenium-hub

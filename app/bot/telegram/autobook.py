@@ -13,6 +13,10 @@ from app.db.models import Chain
 from app.tesco.tesco import Tesco
 from app.waitrose.waitrose import Waitrose
 from app.db.api import connect
+import time
+import threading
+import sys
+from app.log import app_exception
 
 
 class Autobook(object):
@@ -53,15 +57,23 @@ class Autobook(object):
     def do_autobook(self):
         data = list(Chain.objects())
         for chat_chain in data:
+            logging.info(f'chat_id {chat_chain.chat_id}, chain "{chat_chain.name}"')
             # skip if disabled or a group chat
             if not chat_chain.autobook.enabled or chat_chain.chat_id < 0:
+                logging.info(f'Skipping group chat {chat_chain.chat_id}')
                 continue
             chain_cls = eval(chat_chain.name.capitalize())
             chain = get_chain_instance(chat_chain.chat_id, chain_cls)
-            slot = self._get_first_matching_slot(chain, chat_chain.autobook.filters, chat_chain.autobook.interval)
+            settings = Settings(chat_chain.chat_id, chain_cls.name)
+            slot = self._get_first_matching_slot(chain, chat_chain.autobook.filters, settings.ab_interval)
             if slot:
                 chain.book(slot)
-                res = chain.checkout(Settings(chat_chain.chat_id, chat_chain.name).cvv)
+                try:
+                    res = chain.checkout(settings.cvv)
+                # for some reasons Waitrose allows to duplicate orders,
+                # so we just continue in this case and don't do anything
+                except app_exception.OrderExistsException as ex:
+                    continue
                 conf_msg = f'{chat_chain.name.capitalize()}: slot "{get_pretty_slot_name(slot, chain_cls)}" ' \
                            f'has been {constants.S_BOOKED} and {constants.S_CHECKED_OUT}. ' \
                            f'{constants.S_ORDER_NUMBER} "{res}".'
@@ -75,4 +87,10 @@ if __name__ == '__main__':
     connect()
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
     a = Autobook()
-    a.do_autobook()
+    while True:
+        tr = threading.Thread(target=a.do_autobook)
+        tr.start()
+        tr.join(timeout=600)
+        if not tr.is_alive():
+            sys.exit(1)
+        time.sleep(60*60)

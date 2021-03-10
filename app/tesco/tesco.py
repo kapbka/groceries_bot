@@ -1,16 +1,21 @@
-import time
-import os
 import datetime
 import logging
+import os
 import re
 import sys
+import time
+from urllib.parse import urljoin
+
+import dateutil.parser
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from urllib.parse import urljoin
-import dateutil.parser
+
 from app.constants import CHAIN_INTERVAL_HRS
-from app.timed_lru_cache import timed_lru_cache
 from app.log.status_bar import PROGRESS_LOG
+from app.timed_lru_cache import timed_lru_cache
+from app.log import app_exception
+
+from random import randint
 
 MON, TUE, WED, THU, FRI, SAT, SUN = range(7)
 SLOT_EXPIRY_SEC = 300
@@ -28,6 +33,8 @@ class Tesco:
     slot_start_time = datetime.time(8, 00, 00)
     slot_end_time = datetime.time(23, 00, 00)
     slot_interval_hrs = CHAIN_INTERVAL_HRS
+
+    timeout_sec = 60
 
     def __init__(self, login, password):
         self._login = login
@@ -146,23 +153,49 @@ class Tesco:
 
         return [x for x in sorted(slots_data)]
 
-    def book(self, slot_begin: datetime.datetime):
-        PROGRESS_LOG.info('Booking slot')
+    def _wait_for_slot(self, positive):
+        started = time.time()
+        while True:
+            if time.time() - started > Tesco.timeout_sec:
+                raise TimeoutError("Unable to book slot, timed out")
 
+            found = len(self.driver.find_elements_by_class_name("slot-time")) > 0
+            if positive == found:
+                break
+            else:
+                logging.info(f"Waiting for book slot confirmation: {positive}")
+                time.sleep(1)
+
+    def _click_on_slot(self, slot_begin):
         # generate slot id
-        slot_end = slot_begin + datetime.timedelta(hours=self.slot_interval_hrs)
         time_format = "%Y-%m-%dT%H:%M:%S"
         slot_id = f"grid_{slot_begin.strftime(time_format)}"
-
-        # load week page for this slot
-        self._load(f"groceries/en-GB/slots/delivery/{slot_begin.date()}?slotGroup=1")
 
         slot_elem = self.driver.find_element_by_xpath(f"//a[contains(@id, '{slot_id}')]")
         button = slot_elem.find_element_by_xpath('..')
         button.click()
 
-        self._current_slot = slot_begin
-        self._last_current_slot_update_time = time.time()
+    def book(self, slot_begin: datetime.datetime):
+        PROGRESS_LOG.info(f'Booking slot: {slot_begin}')
+
+        self._current_slot = self.get_current_slot()
+
+        # load week page for this slot
+        self._load(f"groceries/en-GB/slots/delivery/{slot_begin.date()}?slotGroup=1")
+
+        if self._current_slot != slot_begin:
+
+            if self.driver.find_elements_by_class_name("slot-time"):
+                self._click_on_slot(self._current_slot)
+                self._wait_for_slot(False)
+
+                self._load(f"groceries/en-GB/slots/delivery/{slot_begin.date()}?slotGroup=1")
+
+            self._click_on_slot(slot_begin)
+            self._wait_for_slot(True)
+
+            self._current_slot = slot_begin
+            self._last_current_slot_update_time = time.time()
 
     def is_basket_empty(self):
         self._load('groceries/en-GB/trolley')
@@ -175,11 +208,15 @@ class Tesco:
         button.click()
 
     def checkout(self, cvv):
+        PROGRESS_LOG.info('Checkout')
+
         if self.is_basket_empty():
+            PROGRESS_LOG.info('Adding the last order to the basket')
             self.add_last_order_to_basket()
 
         self._load('groceries/en-GB/trolley')
 
+        # TODO: add time check
         while not self.driver.current_url.endswith('review-trolley'):
             self._load('groceries/en-GB/checkout/review-trolley')
         while self.driver.current_url.find('payment?') == -1:
@@ -187,14 +224,21 @@ class Tesco:
 
         self.driver.switch_to.frame('bounty-iframe')
 
+        PROGRESS_LOG.info('Making payment')
+
+        time.sleep(randint(0, 1))
         inp = self.driver.find_element_by_class_name('cvc-input')
         inp.send_keys(str(cvv))
 
+        time.sleep(randint(0, 1))
         button = self.driver.find_element_by_class_name('confirm-button')
         button.click()
 
-        # TODO: add exit condition if wrong cvv for example
+        start_time = time.time()
+        PROGRESS_LOG.info('Waiting for payment confirmation')
         while True:
+            if time.time() - start_time > Tesco.timeout_sec:
+                raise app_exception.PaymentErrorException
             try:
                 text = self.driver.find_element_by_xpath("//*[contains(text(), 'Your order number is')]")
                 logging.info(f"Order text: '{text.text}'")

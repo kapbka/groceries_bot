@@ -4,6 +4,7 @@ from app.waitrose.slot import Slot
 from app.constants import CHAIN_INTERVAL_HRS
 from app.timed_lru_cache import timed_lru_cache
 import datetime
+from app.log import app_exception
 
 SLOT_EXPIRY_SEC = 60
 
@@ -27,7 +28,8 @@ class Waitrose:
 
     @timed_lru_cache(SLOT_EXPIRY_SEC)
     def get_slots(self, slot_type='DELIVERY'):
-        return Slot(session=self.session, slot_type=slot_type).get_available_slots()
+        slot = Slot(session=self.session, slot_type=slot_type)
+        return slot.get_available_slots()
 
     def book(self, start_datetime):
         slot = Slot(session=self.session, slot_type='DELIVERY')
@@ -44,14 +46,19 @@ class Waitrose:
             start_date, end_date = slot.book_first_available_slot()
 
     def checkout(self, cvv):
+        curr_slot = self.get_current_slot()
+        if self.session.order_exists(curr_slot):
+            raise app_exception.OrderExistsException
+
+        if not cvv:
+            raise ValueError('Empty cvv!')
+
         # if a trolley is empty will try to fill it in with items from the last order
         if self.session.is_trolley_empty():
             self.session.merge_last_order_to_trolley()
 
-        # if cvv is passed proceed with checkout not to lose the slot
-        if self.cvv:
-            card_list = self.session.get_payment_card_list()
-            res = self.session.checkout_trolley(self.session.customerOrderId, card_list[0], cvv)
+        card_list = self.session.get_payment_card_list()
+        self.session.checkout_trolley(int(card_list[0]['id']), cvv)
         return str(self.session.customerOrderId)
 
     def get_current_slot(self):
@@ -59,4 +66,4 @@ class Waitrose:
         return slot.get_current_slot()
 
     def get_last_order_date(self):
-        return self.session.get_last_order()
+        return self.session.get_last_order_date()

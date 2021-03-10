@@ -52,6 +52,8 @@ class Settings(object):
             elif key == 'password':
                 self.db_obj.creds.password = encrypt(value, str(self.chat_id) + self.chain_name)
             elif key == 'cvv':
+                if not value:
+                    raise ValueError('Empty cvv!')
                 if value and (not int(value) or len(value) != 3):
                     raise ValueError(f'Invalid cvv {value}, must be 3 digit number!')
                 self.db_obj.creds.cvv = encrypt(str(value), str(self.chat_id) + self.chain_name)

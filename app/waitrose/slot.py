@@ -92,6 +92,8 @@ class Slot:
                   slot_type: str,
                   start_date_time: datetime,
                   end_date_time: datetime):
+        if self.session.order_exists(start_date_time):
+            return True
         variables = {"bookSlotInput": {
             "branchId": str(branch_id),
             "slotType": slot_type,

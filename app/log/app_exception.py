@@ -78,3 +78,24 @@ class NoPaymentCardException(AppException):
 class TrolleyException(AppException):
     internal_err_msg = 'Error during query the trolley'
     user_err_msg = 'There are some problems with trolley loading. Please try later'
+
+
+class PaymentException(AppException):
+    internal_err_msg = 'Error during payment'
+    user_err_msg = 'There are some problems with payment. Please try later'
+
+
+class PlaceOrderException(AppException):
+    internal_err_msg = 'Error during placing order'
+    user_err_msg = 'There are some problems with placing your order. Please try later or contact support @kapbka'
+
+
+class OrderListException(AppException):
+    internal_err_msg = 'Error during getting order list'
+    user_err_msg = 'There are some problems with getting order list. Please try later or contact support @kapbka'
+
+
+# for some reasons Waitrose doesn't have this check
+class OrderExistsException(AppException):
+    internal_err_msg = 'Order already exists'
+    user_err_msg = 'Order already exists'

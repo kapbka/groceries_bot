@@ -10,7 +10,7 @@ MEMBERSHIP_URL = 'https://www.waitrose.com/api/memberships-prod/v1/memberships'
 
 LAST_ADDRESS_ID_URL = 'https://www.waitrose.com/api/address-prod/v1/addresses?sortBy=-lastDelivery'
 
-ORDER_LIST_URL = 'https://www.waitrose.com/api/order-orchestration-prod/v1/orders?size=15&statuses=COMPLETED%2BCANCELLED%2BREFUND_PENDING'
+ORDER_LIST_URL = 'https://www.waitrose.com/api/order-orchestration-prod/v1/orders?size=15&statuses=COMPLETED%2BPLACED%2BREFUND_PENDING'
 
 BRANCH_ID_BY_POSCODE_URL = 'https://www.waitrose.com/api/branch-prod/v3/branches?fulfilment_type=DELIVERY&location={}'
 
@@ -25,6 +25,8 @@ TROLLEY_ITEMS_URL = 'https://www.waitrose.com/api/orderitems-prod/v4/orders/{}/t
 PAYMENTS_CARDS_URL = 'https://www.waitrose.com/api/payment-orchestration-prod/v1/payments/paymentcards/'
 
 CHECKOUT_URL = 'https://www.waitrose.com/api/order-orchestration-prod/v1/orders/{}/payment-cards/{}'
+
+PLACE_ORDER_URL = 'https://www.waitrose.com/api/order-orchestration-prod/v1/orders/{}/place'
 
 SESSION_QUERY = """
             mutation($session: SessionInput) {      
