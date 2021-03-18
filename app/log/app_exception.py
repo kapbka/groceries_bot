@@ -119,3 +119,8 @@ class OrderListException(AppException):
 class OrderExistsException(AppException):
     internal_err_msg = 'Order already exists'
     user_err_msg = 'Order already exists'
+
+
+class OrderIsBeingAmended(AppException):
+    internal_err_msg = 'Order is being amended, first the changes need to be confirmed'
+    user_err_msg = 'One of your orders is being amended, please checkout the changes first to see all available slots to make a new order'

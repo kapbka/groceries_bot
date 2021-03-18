@@ -7,7 +7,7 @@ import time
 from urllib.parse import urljoin
 
 import dateutil.parser
-from selenium import webdriver
+from selenium import webdriver, common
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 from app.constants import CHAIN_INTERVAL_HRS
@@ -135,6 +135,12 @@ class Tesco:
             PROGRESS_LOG.info(f'Fetching slots for {week_href.replace("?slotGroup=1", "").split("/")[-1]}')
             self.driver.get(week_href)
 
+            order_is_being_amended_errors = self.driver.find_elements_by_xpath(
+                "//*[contains(text(), \"Delivery slots for these dates are fully booked.\")]")
+            if order_is_being_amended_errors:
+                raise app_exception.OrderIsBeingAmended
+
+
             slots = self.driver.find_elements_by_class_name('slot-grid--item')
 
             for slot in slots:
@@ -231,8 +237,12 @@ class Tesco:
         PROGRESS_LOG.info('Making payment')
 
         time.sleep(randint(0, 1))
-        inp = self.driver.find_element_by_class_name('cvc-input')
-        inp.send_keys(str(cvv))
+        try:
+            inp = self.driver.find_element_by_class_name('cvc-input')
+            inp.send_keys(str(cvv))
+        except common.exceptions.NoSuchElementException:
+            # confirmation of amendment (in this case no cvv field on the form)
+            pass
 
         time.sleep(randint(0, 1))
         button = self.driver.find_element_by_class_name('confirm-button')

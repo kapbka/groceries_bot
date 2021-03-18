@@ -95,8 +95,8 @@ class Session:
         if incorrect_login_errors:
             raise app_exception.LoginFailException
 
-        account__locked_errors = self.driver.find_elements_by_xpath("//*[contains(text(), \"Your account has been locked due to several unsuccessful sign in attempts\")]")
-        if account__locked_errors:
+        account_locked_errors = self.driver.find_elements_by_xpath("//*[contains(text(), \"Your account has been locked due to several unsuccessful sign in attempts\")]")
+        if account_locked_errors:
             raise app_exception.AccountLockedException
 
         _ = WebDriverWait(self.driver, 10).until(ec.visibility_of_element_located((By.XPATH, "//*[contains(text(), \"My account\")]")))
