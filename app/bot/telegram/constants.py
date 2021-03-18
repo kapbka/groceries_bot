@@ -60,7 +60,7 @@ H_MAIN = f'{HELP_EMOJI}\n\n' \
 H_AUTOBOOKING = f'{HELP_EMOJI}\n\n' \
                 'Days of the week and time slots - a day of the week and time for delivery. \n\n' \
                 'Minimal order interval - minimal interval in days between orders (for example, 7 is once a week). \n\n' \
-                'Enabled - a checkbox to enable autobooking functionality.\n\n'
+                'Enabled - a checkbox to enable autobooking functionality. If no days/times are chosen then the first available slot will be booked.\n\n'
 
 H_BOOK_CHECKOUT = f'{HELP_EMOJI}\n\n' \
                   'Choose a day of the week and time to book and check out a delivery slot.'
