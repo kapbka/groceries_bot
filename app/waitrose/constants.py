@@ -1,6 +1,10 @@
 # constants for waitrose chain
 
 
+USER_AGENT = """Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"""
+
+MAIN_PAGE_URL = "https://www.waitrose.com"
+
 SESSION_ENDPOINT_URL = "https://www.waitrose.com/api/graphql-prod/graph/live"
 
 # returns strange data
@@ -10,6 +14,7 @@ MEMBERSHIP_URL = 'https://www.waitrose.com/api/memberships-prod/v1/memberships'
 
 LAST_ADDRESS_ID_URL = 'https://www.waitrose.com/api/address-prod/v1/addresses?sortBy=-lastDelivery'
 
+#AMENDING+FULFIL+PAID+PAYMENT_FAILED+PICKED+PLACED
 ORDER_LIST_URL = 'https://www.waitrose.com/api/order-orchestration-prod/v1/orders?size=15&statuses=COMPLETED%2BPLACED%2BREFUND_PENDING'
 
 BRANCH_ID_BY_POSCODE_URL = 'https://www.waitrose.com/api/branch-prod/v3/branches?fulfilment_type=DELIVERY&location={}'
@@ -28,24 +33,28 @@ CHECKOUT_URL = 'https://www.waitrose.com/api/order-orchestration-prod/v1/orders/
 
 PLACE_ORDER_URL = 'https://www.waitrose.com/api/order-orchestration-prod/v1/orders/{}/place'
 
-SESSION_QUERY = """
-            mutation($session: SessionInput) {      
-                  generateSession(session: $session) {
-                          accessToken
-                          customerId
-                          customerOrderId
-                          customerOrderState
-                          defaultBranchId
-                          expiresIn
-                          permissions
-                          principalId
-                          failures{
-                                type
-                                message
-                          }
-                  }
+DELETE_SESSION_QUERY = """
+            mutation($session: DeleteSessionInput) {
+                  deleteSession(session: $session)
             }
         """
+
+SESSION_QUERY = """mutation($session: SessionInput) {
+      generateSession(session: $session) {
+        accessToken
+        customerId
+        customerOrderId
+        customerOrderState
+        defaultBranchId
+        expiresIn
+        permissions
+        principalId
+        failures{
+          type
+          message
+        }
+      }
+    }"""
 
 SLOT_QUERY = """
             query slotDays($slotDaysInput: SlotDaysInput) {  

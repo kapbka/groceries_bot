@@ -68,7 +68,7 @@ class SlotsMenu(Menu):
 class SlotDayMenu(Menu):
     def __init__(self, chat_id, chain_cls, slot_day: datetime.date, display_name: str,
                  make_book: bool = True, make_checkout: bool = False):
-        super().__init__(chat_id, chain_cls, display_name, [], 30)
+        super().__init__(chat_id, chain_cls, display_name, [], 21)
         self.slot_day = slot_day
         self.make_book = make_book
         self.make_checkout = make_checkout
@@ -106,7 +106,7 @@ class SlotDayMenu(Menu):
 class SlotTimeMenu(Menu):
     def __init__(self, chat_id, chain_cls, display_name: str, chain, start_datetime: datetime,
                  make_book: bool, make_checkout: bool):
-        super().__init__(chat_id, chain_cls, display_name, [], 40)
+        super().__init__(chat_id, chain_cls, display_name, [], 23)
         self.chain = chain
         self.start_datetime = start_datetime
         if not make_book and not make_checkout:

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, time
 from app.waitrose import constants
 from app.constants import WEEKDAYS, CHAIN_INTERVAL_HRS
 from app.waitrose.session import Session
+from dateutil.parser import parse
 
 
 class Slot:
@@ -59,11 +60,10 @@ class Slot:
                 sd_weekday = WEEKDAYS(sd_weekday).name
                 if not slot_filter or sd_weekday in list(slot_filter.keys()):
                     for s in sd['slots']:
+                        start_datetime = parse(s['startDateTime'])
                         if (s['slotStatus'] not in ['FULLY_BOOKED', 'UNAVAILABLE'] and
-                            (not slot_filter
-                             or
-                             datetime.strptime(s['startDateTime'], '%Y-%m-%dT%H:%M:%SZ').time() in slot_filter[sd_weekday])):
-                            res.append(datetime.strptime(s['startDateTime'], '%Y-%m-%dT%H:%M:%SZ'))
+                           (not slot_filter or start_datetime.time() in slot_filter[sd_weekday])):
+                            res.append(start_datetime)
                         else:
                             continue
                 else:
@@ -148,6 +148,6 @@ class Slot:
         current_slot = self.session.execute(constants.CURRENT_SLOT_QUERY, variables)
 
         if current_slot['data']['currentSlot']:
-            return datetime.strptime(current_slot['data']['currentSlot']['startDateTime'], '%Y-%m-%dT%H:%M:%SZ')
+            return parse(current_slot['data']['currentSlot']['startDateTime'])
         else:
             return None

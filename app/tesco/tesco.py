@@ -81,7 +81,7 @@ class Tesco:
                 time.sleep(1)
 
     def login(self):
-        PROGRESS_LOG.info('Loggining into profile')
+        PROGRESS_LOG.info('Loggining into Tesco profile')
         self._load('account/en-GB/login')
         login = self.driver.find_element_by_id('username')
         login.send_keys(self._login)
@@ -91,6 +91,10 @@ class Tesco:
 
         form = self.driver.find_element_by_xpath('//*[@id="sign-in-form"]/button')
         form.submit()
+
+        errors = self.driver.find_elements_by_xpath("//*[contains(text(), 'we do not recognise those details')]")
+        if errors:
+            raise app_exception.LoginFailException
 
     def get_current_slot(self):
         PROGRESS_LOG.info('Fetching current slot')

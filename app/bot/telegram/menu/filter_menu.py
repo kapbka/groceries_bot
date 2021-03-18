@@ -113,7 +113,7 @@ class FilterDayMenu(Menu):
 
 
 class FilterTimeMenu(Menu):
-    def __init__(self, chat_id, chain_cls, display_name: str, week_day: int, day_time: int, alignment_len: int = 40):
+    def __init__(self, chat_id, chain_cls, display_name: str, week_day: int, day_time: int, alignment_len: int = 27):
         super().__init__(chat_id, chain_cls, display_name, [], alignment_len)
 
         self.week_day = week_day

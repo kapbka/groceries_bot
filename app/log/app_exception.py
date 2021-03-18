@@ -37,6 +37,26 @@ class LoginFailException(AppException):
     user_err_msg = 'Failed to login into your profile, please check if your login/password is correct'
 
 
+class AccountLockedException(AppException):
+    internal_err_msg = 'Account has been locked due to several unsuccessful sign in attempts'
+    user_err_msg = 'Your account has been locked due to several unsuccessful sign in attempts'
+
+
+class PostRequestException(AppException):
+    internal_err_msg = 'Post request failed, please see logs'
+    user_err_msg = 'There are some problems. Please try later or contact support @kapbka'
+
+
+class ExecuteRequestException(AppException):
+    internal_err_msg = 'Execute request failed, please see logs'
+    user_err_msg = 'There are some problems. Please try later or contact support @kapbka'
+
+
+class NoCookieException(AppException):
+    internal_err_msg = 'No such cookie found'
+    user_err_msg = 'There are some problems. Please try later or contact support @kapbka'
+
+
 class ShopProviderUnavailableException(AppException):
     internal_err_msg = 'Internal error on shop provider side'
     user_err_msg = 'Internal error on shop provider side, please try later'
