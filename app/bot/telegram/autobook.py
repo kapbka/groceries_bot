@@ -60,7 +60,7 @@ class Autobook(object):
             logging.info(f'chat_id {chat_chain.chat_id}, chain "{chat_chain.name}"')
             # skip if disabled or a group chat
             if not chat_chain.autobook.enabled or chat_chain.chat_id < 0:
-                logging.info(f'Skipping group chat {chat_chain.chat_id}')
+                logging.info(f'Skipping chat {chat_chain.chat_id}')
                 continue
             chain_cls = eval(chat_chain.name.capitalize())
             chain = get_chain_instance(chat_chain.chat_id, chain_cls)

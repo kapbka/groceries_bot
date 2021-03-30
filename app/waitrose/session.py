@@ -7,6 +7,7 @@ import http
 from urllib.parse import urljoin
 from python_graphql_client import GraphqlClient
 from datetime import datetime
+import time
 
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
@@ -99,7 +100,13 @@ class Session:
         if account_locked_errors:
             raise app_exception.AccountLockedException
 
-        _ = WebDriverWait(self.driver, 10).until(ec.visibility_of_element_located((By.XPATH, "//*[contains(text(), \"My account\")]")))
+        start_time = time.time()
+        while True:
+            if self.driver.find_elements_by_xpath("//*[contains(text(), \"My account\")]"):
+                break
+            if time.time() - start_time > 10:
+                raise app_exception.PageLoadingTimeOut
+        #_ = WebDriverWait(self.driver, 10).until(ec.visibility_of_element_located((By.XPATH, "//*[contains(text(), \"My account\")]")))
 
         return self.driver.get_cookies()
 

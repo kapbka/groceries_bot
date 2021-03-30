@@ -42,6 +42,11 @@ class AccountLockedException(AppException):
     user_err_msg = 'Your account has been locked due to several unsuccessful sign in attempts'
 
 
+class PageLoadingTimeOut(AppException):
+    internal_err_msg = 'Timeout for page loading'
+    user_err_msg = 'Timeout occured, please try later'
+
+
 class PostRequestException(AppException):
     internal_err_msg = 'Post request failed, please see logs'
     user_err_msg = 'There are some problems. Please try later or contact support @kapbka'
