@@ -8,7 +8,7 @@ from app.tesco.tesco import Tesco
 
 CHAIN_LIST = [Waitrose, Tesco] # , Coop, Asda, Lidl, Sainsbury
 
-BOT_TOKEN = '1579751582:AAEcot5v5NLyxXB1uFYQiBCyvBAsKOzGGsU'
+BOT_TOKEN = ''
 
 
 if __name__ == '__main__':
